@@ -3,1826 +3,1155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torelo KPI Dashboard</title>
+    <title>Torelo KPI — Centro de Inteligencia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #181a20;
+            --surface-2: #1f2128;
+            --surface-3: #262830;
+            --border: #2a2d37;
+            --border-hover: #3d4150;
+            --text: #e4e5e9;
+            --text-dim: #8b8f9a;
+            --text-muted: #5c5f6b;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108,92,231,0.15);
+            --accent-soft: #7c6ff0;
+            --green: #00d68f;
+            --green-dim: rgba(0,214,143,0.12);
+            --amber: #f0b429;
+            --amber-dim: rgba(240,180,41,0.12);
+            --red: #ff6b6b;
+            --red-dim: rgba(255,107,107,0.12);
+            --blue: #48bfe3;
+            --blue-dim: rgba(72,191,227,0.12);
+            --sidebar-w: 260px;
+            --header-h: 64px;
+            --radius: 10px;
+            --radius-lg: 14px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f7f9fc;
-            color: #1f2937;
-            line-height: 1.6;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-            color: white;
-            padding: 3rem 2rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-        
-        .header p {
-            font-size: 1.125rem;
-            opacity: 0.9;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #10b981;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        /* Gantt Viewer Button */
-        .gantt-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-left: 1rem;
-        }
-        
-        .gantt-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
-        }
-        
-        .gantt-button-icon {
-            font-size: 1.25rem;
-        }
-        .cashflow-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-left: 1rem;
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.55;
+            overflow-x: hidden;
         }
 
-        .cashflow-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-        }
-
-        .cashflow-button-icon {
-            font-size: 1.25rem;      
-        }
-
-        .attendance-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-left: 1rem;
-        }
-
-        .attendance-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        }
-
-        .attendance-button-icon {
-            font-size: 1.25rem;
-        }
-
-        .report-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .report-card {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .report-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #5b21b6 0%, #4c1d95 100%);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .report-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border-color: #5b21b6;
-        }
-        
-        .report-card:hover::before {
-            transform: translateX(0);
-        }
-        
-        .report-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 1rem;
-        }
-        
-        .report-name {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #1f2937;
-        }
-        
-        .report-desc {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-bottom: 1rem;
-        }
-        
-        .report-meta {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #5b21b6;
-            color: white;
-            padding: 0.625rem 1.25rem;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .download-btn:hover {
-            background: #4c1d95;
-            transform: translateY(-1px);
-        }
-        
-        /* Archive Section Styles */
-        .archive-grid {
-            display: grid;
-            gap: 1rem;
-        }
-        
-        .date-folder {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .date-folder:hover {
-            background: #f3f4f6;
-            border-color: #d1d5db;
-        }
-        
-        .date-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .date-title {
-            font-weight: 600;
-            color: #374151;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .file-count {
-            background: #e5e7eb;
-            color: #6b7280;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-        }
-        
-        .date-files {
-            margin-top: 1rem;
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 0.75rem;
-        }
-        
-        .date-folder.expanded .date-files {
-            display: grid;
-        }
-        
-        .archive-file {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.2s ease;
-        }
-        
-        .archive-file:hover {
-            border-color: #5b21b6;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        .file-info {
-            flex: 1;
-        }
-        
-        .file-name {
-            font-size: 0.875rem;
-            color: #374151;
-            word-break: break-all;
-        }
-        
-        .file-size {
-            font-size: 0.75rem;
-            color: #9ca3af;
-            margin-top: 0.25rem;
-        }
-        
-        .archive-download {
-            background: #5b21b6;
-            color: white;
-            padding: 0.5rem;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            flex-shrink: 0;
-        }
-        
-        .archive-download:hover {
-            background: #4c1d95;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: #6b7280;
-        }
-        
-        .error-message {
-            background: #fee;
-            color: #c00;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: #6b7280;
-            margin-top: 4rem;
-        }
-        
-        .expand-icon {
-            transition: transform 0.3s ease;
-        }
-        
-        .date-folder.expanded .expand-icon {
-            transform: rotate(90deg);
-        }
-
-        /* Chat Widget Styles */
-        .chat-widget {
+        /* ───── Sidebar ───── */
+        .sidebar {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        .chat-bubble {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-            border-radius: 50%;
+            top: 0; left: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .chat-bubble:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .chat-bubble svg {
-            width: 30px;
-            height: 30px;
-            fill: white;
-        }
-
-        .pulse {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background: #ef4444;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .chat-window {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 380px;
-            height: 600px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            display: none;
             flex-direction: column;
-            overflow: hidden;
-            animation: slideUp 0.3s ease;
+            z-index: 900;
+            transition: transform .3s cubic-bezier(.4,0,.2,1);
         }
+        .sidebar.collapsed { transform: translateX(calc(var(--sidebar-w) * -1)); }
 
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .chat-header {
-            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-            color: white;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .chat-title {
+        .sidebar-brand {
+            height: var(--header-h);
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-
-        .chat-avatar {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .chat-info h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .chat-info p {
-            margin: 0;
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 5px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .close-btn:hover {
-            opacity: 1;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f7f9fc;
-        }
-
-        .message {
-            margin-bottom: 16px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message-bot {
-            display: flex;
-            gap: 10px;
-            align-items: start;
-        }
-
-        .bot-avatar {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-
-        .bot-avatar svg {
-            width: 18px;
-            height: 18px;
-            fill: white;
-        }
-
-        .message-content {
-            background: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            max-width: 80%;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .message-user .message-content {
-            background: #5b21b6;
-            color: white;
-            margin-left: auto;
-        }
-
-        .suggestions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .suggestion-chip {
-            background: white;
-            border: 1px solid #e5e7eb;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .suggestion-chip:hover {
-            background: #5b21b6;
-            color: white;
-            border-color: #5b21b6;
-        }
-
-        .file-result {
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
+        .sidebar-brand .logo {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
             border-radius: 8px;
-            padding: 12px;
-            margin-top: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
+            display: grid; place-items: center;
+            font-weight: 700; font-size: 15px; color: #fff;
         }
-
-        .file-result:hover {
-            background: #e5e7eb;
-            border-color: #5b21b6;
+        .sidebar-brand h2 {
+            font-size: 16px; font-weight: 700; letter-spacing: -.3px;
+            background: linear-gradient(135deg, #e4e5e9, #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
+        .sidebar-brand small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 400; -webkit-text-fill-color: var(--text-muted); }
 
-        .file-icon {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            color: #374151;
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-label {
+            font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+            color: var(--text-muted); padding: 0 8px; margin-bottom: 8px;
         }
-
-        .file-meta {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            color: var(--text-dim); text-decoration: none;
+            font-size: 13.5px; font-weight: 500;
+            transition: all .15s;
+            cursor: pointer; border: none; background: none; width: 100%; text-align: left;
         }
-
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 16px;
-            background: white;
-            border-radius: 12px;
-            width: fit-content;
-            margin-bottom: 16px;
+        .nav-item:hover { background: var(--surface-2); color: var(--text); }
+        .nav-item.active {
+            background: var(--accent-glow); color: var(--accent-soft);
         }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #9ca3af;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
+        .nav-item .nav-icon { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
+        .nav-item .badge {
+            margin-left: auto; font-size: 10px; font-weight: 700;
+            padding: 2px 7px; border-radius: 6px;
+            background: var(--accent-glow); color: var(--accent-soft);
         }
+        .nav-item .badge.green { background: var(--green-dim); color: var(--green); }
 
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
+        .sidebar-footer {
+            padding: 16px; border-top: 1px solid var(--border); flex-shrink: 0;
         }
+        .sidebar-footer .server-status {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--text-muted);
+        }
+        .sidebar-footer .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green); box-shadow: 0 0 6px var(--green);
+        }
+        .sidebar-footer .dot.error { background: var(--red); box-shadow: 0 0 6px var(--red); }
 
-        .chat-input-container {
+        /* ───── Main Area ───── */
+        .main {
+            margin-left: var(--sidebar-w);
+            min-height: 100vh;
+            transition: margin-left .3s cubic-bezier(.4,0,.2,1);
+        }
+        .sidebar.collapsed ~ .main { margin-left: 0; }
+
+        .topbar {
+            position: sticky; top: 0; z-index: 800;
+            height: var(--header-h);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(15,17,23,.82);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .menu-toggle {
+            display: none; background: none; border: none; color: var(--text-dim);
+            font-size: 22px; cursor: pointer; padding: 4px;
+        }
+        .topbar h1 { font-size: 17px; font-weight: 600; letter-spacing: -.2px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .topbar-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 8px;
+            font-size: 12.5px; font-weight: 500;
+            border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+            cursor: pointer; transition: all .15s; text-decoration: none;
+        }
+        .topbar-btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--surface-3); }
+
+        /* ───── Content ───── */
+        .content { padding: 28px; max-width: 1360px; }
+
+        /* KPI row */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 28px;
+        }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             padding: 20px;
-            background: white;
-            border-top: 1px solid #e5e7eb;
+            position: relative; overflow: hidden;
+            transition: border-color .2s;
         }
+        .kpi-card:hover { border-color: var(--border-hover); }
+        .kpi-card .kpi-glow {
+            position: absolute; top: -30px; right: -30px;
+            width: 80px; height: 80px; border-radius: 50%; opacity: .4;
+            filter: blur(30px); pointer-events: none;
+        }
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
+        .kpi-card .kpi-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px; font-weight: 700; letter-spacing: -1px;
+        }
+        .kpi-card .kpi-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+        .kpi-card .kpi-icon { font-size: 20px; margin-bottom: 10px; }
 
-        .chat-input-wrapper {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+        /* Section cards */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+            overflow: hidden;
         }
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-header h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .section-body { padding: 22px; }
 
-        .chat-input {
-            flex: 1;
-            border: 1px solid #e5e7eb;
-            border-radius: 24px;
-            padding: 12px 20px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
+        /* Viewer Cards (quick access to sub-pages) */
+        .viewer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
         }
-
-        .chat-input:focus {
-            border-color: #5b21b6;
-        }
-
-        .send-btn {
-            background: #5b21b6;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .send-btn:hover {
-            background: #4c1d95;
-            transform: scale(1.05);
-        }
-
-        .send-btn:disabled {
-            background: #e5e7eb;
-            cursor: not-allowed;
-        }
-
-        .send-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-        
-        @media (max-width: 768px) {
-            .report-grid {
-                grid-template-columns: 1fr;
-            }
-            .container {
-                padding: 1rem;
-            }
-            .section {
-                padding: 1.5rem;
-            }
-            .chat-window {
-                width: calc(100vw - 40px);
-                height: calc(100vh - 110px);
-                right: 20px;
-                bottom: 90px;
-            }
-        }
-
-        /* Email Search Specific Styles */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .quick-search-chip {
-            background: white;
-            border: 1px solid #e5e7eb;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .quick-search-chip:hover {
-            background: #059669;
-            color: white;
-            border-color: #059669;
-        }
-
-        .email-result-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+        .viewer-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             padding: 20px;
-            margin-bottom: 16px;
-            transition: all 0.2s;
+            background: var(--surface-2);
+            text-decoration: none; color: inherit;
+            display: flex; flex-direction: column; gap: 12px;
+            transition: all .2s;
+            position: relative; overflow: hidden;
+        }
+        .viewer-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+        }
+        .viewer-card .vc-stripe {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+        .viewer-card .vc-icon { font-size: 28px; }
+        .viewer-card .vc-title { font-size: 15px; font-weight: 600; }
+        .viewer-card .vc-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+        .viewer-card .vc-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: 600; padding: 3px 8px;
+            border-radius: 5px; width: fit-content;
         }
 
-        .email-result-card:hover {
-            border-color: #059669;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        /* Report file list */
+        .report-list { display: flex; flex-direction: column; gap: 8px; }
+        .report-row {
+            display: flex; align-items: center; gap: 14px;
+            padding: 12px 16px;
+            border-radius: 8px; background: var(--surface-2);
+            border: 1px solid transparent;
+            transition: all .15s;
+        }
+        .report-row:hover { border-color: var(--border-hover); background: var(--surface-3); }
+        .report-row .r-icon { font-size: 22px; flex-shrink: 0; }
+        .report-row .r-info { flex: 1; min-width: 0; }
+        .report-row .r-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .report-row .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+        .report-row .r-download {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 14px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; text-decoration: none;
+            background: var(--accent-glow); color: var(--accent-soft);
+            border: 1px solid rgba(108,92,231,.2);
+            transition: all .15s; flex-shrink: 0;
+        }
+        .report-row .r-download:hover { background: rgba(108,92,231,.25); }
+
+        /* Archive */
+        .archive-folder {
+            border: 1px solid var(--border); border-radius: 8px;
+            margin-bottom: 8px; overflow: hidden;
+        }
+        .archive-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; cursor: pointer;
+            background: var(--surface-2);
+            transition: background .15s;
+        }
+        .archive-header:hover { background: var(--surface-3); }
+        .archive-header .ah-left { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; }
+        .archive-header .ah-arrow { transition: transform .2s; font-size: 12px; color: var(--text-muted); }
+        .archive-folder.open .ah-arrow { transform: rotate(90deg); }
+        .archive-body { display: none; padding: 12px 16px; border-top: 1px solid var(--border); }
+        .archive-folder.open .archive-body { display: block; }
+
+        /* Status pill */
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 11.5px; font-weight: 600;
+        }
+        .status-pill.ok { background: var(--green-dim); color: var(--green); }
+        .status-pill.warn { background: var(--amber-dim); color: var(--amber); }
+        .status-pill.err { background: var(--red-dim); color: var(--red); }
+        .status-pill .sp-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: currentColor;
         }
 
-        .email-summary {
-            background: #f3f4f6;
-            border-left: 4px solid #059669;
-            padding: 16px;
-            margin: 16px 0;
-            border-radius: 0 8px 8px 0;
+        /* Skeleton loader */
+        .skeleton {
+            background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
         }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #059669;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        /* Floating action buttons */
+        .fab-group {
+            position: fixed; bottom: 24px; right: 148px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 950;
         }
+        .fab {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: grid; place-items: center;
+            font-size: 20px; border: none; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,.3);
+            transition: all .2s; text-decoration: none;
+        }
+        .fab:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+        .fab.primary { background: linear-gradient(135deg, var(--accent), #a78bfa); color: #fff; }
+        .fab.secondary { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* ───── Modals ───── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+            z-index: 10000; animation: fadeIn .2s;
+        }
+        .modal-overlay.show { display: flex; align-items: center; justify-content: center; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        .modal-box {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); width: 92%; max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.5); overflow: hidden;
+        }
+        .modal-box.wide { max-width: 800px; }
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            color: var(--text-dim); font-size: 16px; cursor: pointer;
+            display: grid; place-items: center; transition: all .15s;
+        }
+        .modal-close:hover { background: var(--surface-3); color: var(--text); }
+        .modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+        .input-field {
+            width: 100%; padding: 10px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+            font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s;
+        }
+        .input-field:focus { border-color: var(--accent); }
+        .input-label { display: block; font-size: 12.5px; font-weight: 500; color: var(--text-dim); margin-bottom: 6px; }
+
+        .btn {
+            padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            border: none; cursor: pointer; transition: all .15s; font-family: inherit;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-soft); }
+        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--surface-2); }
+
+        .error-msg { background: var(--red-dim); color: var(--red); padding: 8px 12px; border-radius: 6px; font-size: 13px; display: none; margin-top: 8px; }
+
+        /* Quick search chips */
+        .chip {
+            display: inline-block; padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; background: var(--surface-3); color: var(--text-dim);
+            border: 1px solid var(--border); cursor: pointer; transition: all .15s;
+        }
+        .chip:hover { border-color: var(--accent); color: var(--accent-soft); }
+
+        /* Email results */
+        .email-result {
+            padding: 14px 16px; border-radius: 8px; background: var(--surface-2);
+            border: 1px solid var(--border); margin-bottom: 8px; transition: all .15s;
+        }
+        .email-result:hover { border-color: var(--border-hover); }
+        .email-result .er-subject { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .email-result .er-meta { font-size: 12px; color: var(--text-muted); }
+        .email-result .er-snippet { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+
+        .spinner { width: 22px; height: 22px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 18px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.4);
+            opacity: 0; transition: all .3s; z-index: 9999; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; }
+        .empty-state p { font-size: 13px; }
+
+        /* ───── Responsive ───── */
+        @media (max-width: 840px) {
+            .sidebar { transform: translateX(calc(var(--sidebar-w) * -1)); }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0 !important; }
+            .menu-toggle { display: block; }
+            .content { padding: 20px 16px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .viewer-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+            .topbar h1 { font-size: 14px; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🏢 Torelo KPI Dashboard</h1>
-        <p>Sistema Automatizado de Reportes Operacionales</p>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo">T</div>
+        <div>
+            <h2>Torelo KPI<small>Centro de Inteligencia</small></h2>
+        </div>
     </div>
 
-    <div class="container">
-        <!-- Latest Reports Section -->
-        <div class="section">
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-label">Principal</div>
+            <a href="/" class="nav-item active">
+                <span class="nav-icon">📊</span> Dashboard
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Herramientas</div>
+            <a href="gantt-viewer.html" class="nav-item">
+                <span class="nav-icon">📋</span> Plan de Proyectos
+                <span class="badge">Gantt</span>
+            </a>
+            <a href="cashflow-viewer.html" class="nav-item">
+                <span class="nav-icon">💰</span> Flujo de Pagos
+            </a>
+            <a href="attendance-viewer.html" class="nav-item">
+                <span class="nav-icon">👷</span> Asistencia
+                <span class="badge green">Live</span>
+            </a>
+            <a href="search.html" class="nav-item">
+                <span class="nav-icon">🔍</span> Buscar Documentos
+            </a>
+            <a href="stock-explorer.html" class="nav-item">
+                <span class="nav-icon">📦</span> Movimientos de Stock
+                <span class="badge green">Nuevo</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Administración</div>
+            <button class="nav-item" onclick="showAdminLogin()">
+                <span class="nav-icon">🔐</span> Acceso Admin
+            </button>
+            <button class="nav-item" id="navEmailSearch" style="display:none" onclick="checkEmailSearchAuth()">
+                <span class="nav-icon">📧</span> Búsqueda Correos
+            </button>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="server-status">
+            <span class="dot" id="serverDot"></span>
+            <span id="serverStatus">Verificando...</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ══════════ MAIN AREA ══════════ -->
+<div class="main">
+    <!-- Topbar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1>📊 Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-btn" id="runReportsBtn" onclick="triggerReports()" title="Ejecutar todos los reportes">
+                🔄 Actualizar Reportes
+            </button>
+            <span class="status-pill ok" id="statusPill">
+                <span class="sp-dot"></span>
+                <span id="statusLabel">Cargando...</span>
+            </span>
+        </div>
+    </header>
+
+    <div class="content">
+
+        <!-- ── KPI CARDS ── -->
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi-card">
+                <div class="kpi-glow" style="background:var(--accent)"></div>
+                <div class="kpi-icon">📄</div>
+                <div class="kpi-label">REPORTES GENERADOS</div>
+                <div class="kpi-value" id="kpiFiles">—</div>
+                <div class="kpi-sub" id="kpiFilesDate">Cargando datos...</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-glow" style="background:var(--green)"></div>
+                <div class="kpi-icon">✅</div>
+                <div class="kpi-label">SCRIPTS EXITOSOS</div>
+                <div class="kpi-value" id="kpiSuccess">—</div>
+                <div class="kpi-sub" id="kpiSuccessSub">de — scripts</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-glow" style="background:var(--amber)"></div>
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-label">INVENTARIO</div>
+                <div class="kpi-value" id="kpiInventory">—</div>
+                <div class="kpi-sub">reportes de stock</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-glow" style="background:var(--blue)"></div>
+                <div class="kpi-icon">🕒</div>
+                <div class="kpi-label">ÚLTIMA ACTUALIZACIÓN</div>
+                <div class="kpi-value kpi-time" id="kpiTime" style="font-size:20px">—</div>
+                <div class="kpi-sub" id="kpiTimeDate">—</div>
+            </div>
+        </div>
+
+        <!-- ── QUICK ACCESS VIEWERS ── -->
+        <div class="section-card">
             <div class="section-header">
-                <h2 class="section-title">
-                    <span>⚡</span>
-                    Reportes más Recientes
-                </h2>
-                <div style="display: flex; align-items: center;">
-                    <div class="status-badge" id="statusBadge">
-                        <span>●</span>
-                        <span id="statusText">Verificando...</span>
+                <h2>⚡ Herramientas Interactivas</h2>
+            </div>
+            <div class="section-body">
+                <div class="viewer-grid">
+                    <a href="gantt-viewer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,#059669,#10b981)"></div>
+                        <div class="vc-icon">📋</div>
+                        <div class="vc-title">Plan de Proyectos — Gantt</div>
+                        <div class="vc-desc">Vista estilo MS Project con tareas, dependencias, responsables y montos de PO.</div>
+                        <div class="vc-tag" style="background:var(--green-dim);color:var(--green)">Interactivo</div>
+                    </a>
+                    <a href="cashflow-viewer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,#f0b429,#f59e0b)"></div>
+                        <div class="vc-icon">💰</div>
+                        <div class="vc-title">Control de Flujo de Pagos</div>
+                        <div class="vc-desc">Proyección semanal de cash flow, pagos pendientes, y análisis de liquidez.</div>
+                        <div class="vc-tag" style="background:var(--amber-dim);color:var(--amber)">Finanzas</div>
+                    </a>
+                    <a href="attendance-viewer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,var(--accent),#a78bfa)"></div>
+                        <div class="vc-icon">👷</div>
+                        <div class="vc-title">Control de Asistencia</div>
+                        <div class="vc-desc">Monitoreo en tiempo real de personal en obra, entradas/salidas y horas trabajadas.</div>
+                        <div class="vc-tag" style="background:var(--accent-glow);color:var(--accent-soft)">Tiempo Real</div>
+                    </a>
+                    <a href="stock-explorer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,#ff6b6b,#ee5a24)"></div>
+                        <div class="vc-icon">📦</div>
+                        <div class="vc-title">Explorador de Movimientos de Stock</div>
+                        <div class="vc-desc">Análisis interactivo de todos los movimientos de materiales: entradas, salidas, producción, con filtros y gráficos.</div>
+                        <div class="vc-tag" style="background:var(--red-dim);color:var(--red)">Nuevo ✨</div>
+                    </a>
+                    <a href="search.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,var(--blue),#80d8f4)"></div>
+                        <div class="vc-icon">🔍</div>
+                        <div class="vc-title">Búsqueda de Documentos</div>
+                        <div class="vc-desc">Busca en archivos adjuntos de Odoo por nombre, tipo o contenido.</div>
+                        <div class="vc-tag" style="background:var(--blue-dim);color:var(--blue)">Búsqueda</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── LATEST REPORTS ── -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2>📁 Reportes del Día</h2>
+                <span class="status-pill ok" id="reportDatePill" style="display:none">
+                    <span class="sp-dot"></span>
+                    <span id="reportDateLabel"></span>
+                </span>
+            </div>
+            <div class="section-body">
+                <div class="report-list" id="latestReports">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <div class="skeleton" style="height:52px"></div>
+                        <div class="skeleton" style="height:52px"></div>
+                        <div class="skeleton" style="height:52px"></div>
                     </div>
-                    <a href="gantt-viewer.html" class="gantt-button" target="_blank">
-                        <span class="gantt-button-icon">📊</span>
-                        <span>Ver Diagrama de Gantt</span>
-                    </a>
-                        <a href="cashflow-viewer.html" class="cashflow-button" target="_blank">
-                        <span class="cashflow-button-icon">💰</span>
-                        <span>Control de Flujo de Pagos</span>
-                    </a>
-                    <a href="attendance-viewer.html" class="attendance-button" target="_blank">
-                        <span class="attendance-button-icon">📊</span>
-                        <span>Control de Asistencia</span>
-                    </a>
                 </div>
-            </div>
-            <div class="report-grid" id="latestReports">
-                <div class="loading">Cargando reportes...</div>
             </div>
         </div>
 
-        <!-- Archive Section -->
-        <div class="section">
+        <!-- ── ARCHIVE ── -->
+        <div class="section-card">
             <div class="section-header">
-                <h2 class="section-title">
-                    <span>📁</span>
-                    Archivo de Reportes por Fecha
-                </h2>
+                <h2>🗄️ Archivo Histórico</h2>
             </div>
-            <div class="archive-grid" id="archiveReports">
-                <div class="loading">Cargando archivo...</div>
+            <div class="section-body" id="archiveReports">
+                <div class="skeleton" style="height:44px;margin-bottom:8px"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer style="text-align:center;padding:32px 0 16px;color:var(--text-muted);font-size:12px">
+            <p>© 2024 Torelo — Sistema de Reportes KPI</p>
+            <p style="margin-top:4px">Generación automática diaria a las 6:30 AM (Hora de Guatemala)</p>
+        </footer>
+    </div>
+</div>
+
+<!-- ══════════ FAB BUTTONS ══════════ -->
+<div class="fab-group">
+    <a href="search.html" class="fab primary" title="Buscar Documentos">🔍</a>
+</div>
+
+<!-- ══════════ ADMIN LOGIN MODAL ══════════ -->
+<div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>🔐 Autenticación de Administrador</h3>
+            <button class="modal-close" onclick="closeAdminLogin()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:18px">
+                Acceso restringido a búsqueda de correos de la empresa.
+            </p>
+            <label class="input-label">Correo del Administrador</label>
+            <input type="email" id="adminEmail" value="admin@torelo.net" readonly class="input-field" style="margin-bottom:14px;color:var(--text-muted)">
+            <label class="input-label">Contraseña</label>
+            <input type="password" id="adminPassword" class="input-field" placeholder="Ingrese contraseña"
+                onkeypress="if(event.key==='Enter')authenticateAdmin()">
+            <div class="error-msg" id="authError"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeAdminLogin()">Cancelar</button>
+            <button class="btn btn-primary" onclick="authenticateAdmin()">Verificar Acceso</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ EMAIL SEARCH MODAL ══════════ -->
+<div class="modal-overlay" id="emailSearchModal">
+    <div class="modal-box wide">
+        <div class="modal-header">
+            <h3>📧 Búsqueda de Correos</h3>
+            <button class="modal-close" onclick="closeEmailSearch()">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+                <input type="text" id="emailSearchInput" class="input-field" style="flex:1"
+                    placeholder="Ej: últimos planos hidráulicos, estado proyecto torre 3..."
+                    onkeypress="if(event.key==='Enter')searchEmails()">
+                <button class="btn btn-primary" onclick="searchEmails()" style="white-space:nowrap">🔍 Buscar</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px">
+                <span class="chip" onclick="quickEmailSearch('últimos planos hidráulicos')">planos hidráulicos</span>
+                <span class="chip" onclick="quickEmailSearch('estado del proyecto torre 3')">proyecto torre 3</span>
+                <span class="chip" onclick="quickEmailSearch('aprobaciones pendientes')">aprobaciones pendientes</span>
+                <span class="chip" onclick="quickEmailSearch('facturas recientes')">facturas recientes</span>
+            </div>
+            <div id="emailSearchResults">
+                <div class="empty-state">
+                    <div class="es-icon">📨</div>
+                    <p>Ingresa palabras clave para buscar en los correos de la empresa</p>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <footer>
-        <p>© 2024 Torelo - Sistema de Reportes KPI</p>
-        <p style="font-size: 0.875rem; opacity: 0.8; margin-top: 0.5rem;">
-            Generación automática diaria a las 6:30 AM (Hora de Guatemala)
-        </p>
-    </footer>
-
-    <!-- Search Button -->
-    <a href="/search.html" class="search-button" style="
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
-        color: white;
-        padding: 15px 30px;
-        border-radius: 50px;
-        text-decoration: none;
-        box-shadow: 0 4px 15px rgba(91, 33, 182, 0.3);
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-        z-index: 1000;
-    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        🔍 Buscar Documentos
-    </a>
-
-    <!-- Email Search Button (Hidden by default, shown only for authenticated admin) -->
-    <a href="#" onclick="checkEmailSearchAuth()" class="email-search-button" id="emailSearchButton" style="
-        position: fixed;
-        bottom: 20px;
-        right: 240px;
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        color: white;
-        padding: 15px 30px;
-        border-radius: 50px;
-        text-decoration: none;
-        box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
-        font-weight: 600;
-        display: none; /* Hidden by default */
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-        z-index: 1000;
-    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        🔐 Búsqueda de Correos Admin
-    </a>
-
-    <!-- Admin Login Button (Shown by default) -->
-    <a href="#" onclick="showAdminLogin()" class="admin-login-button" id="adminLoginButton" style="
-        position: fixed;
-        bottom: 20px;
-        right: 240px;
-        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-        color: white;
-        padding: 15px 30px;
-        border-radius: 50px;
-        text-decoration: none;
-        box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-        z-index: 1000;
-    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        🔓 Acceso Administrador
-    </a>
-
-    <!-- Admin Login Modal -->
-    <div id="adminLoginModal" style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        animation: fadeIn 0.3s ease;
-    ">
-        <div style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        ">
-            <!-- Login Header -->
-            <div style="
-                background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-                color: white;
-                padding: 24px;
-                text-align: center;
-            ">
-                <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
-                <h2 style="margin: 0; font-size: 24px;">Autenticación de Administrador</h2>
-                <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">
-                    Acceso a búsqueda de correos restringido a administradores
-                </p>
-            </div>
-            
-            <!-- Login Form -->
-            <div style="padding: 24px;">
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 500;">
-                        Correo del Administrador
-                    </label>
-                    <input type="email" id="adminEmail" value="admin@torelo.net" readonly
-                        style="
-                            width: 100%;
-                            padding: 12px 16px;
-                            border: 2px solid #e5e7eb;
-                            border-radius: 8px;
-                            font-size: 16px;
-                            background: #f9fafb;
-                            color: #6b7280;
-                        "
-                    >
-                </div>
-                
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 500;">
-                        Contraseña
-                    </label>
-                    <input type="password" id="adminPassword" placeholder="Ingrese la contraseña de administrador"
-                        style="
-                            width: 100%;
-                            padding: 12px 16px;
-                            border: 2px solid #e5e7eb;
-                            border-radius: 8px;
-                            font-size: 16px;
-                            outline: none;
-                            transition: border-color 0.2s;
-                        "
-                        onfocus="this.style.borderColor='#6b7280'"
-                        onblur="this.style.borderColor='#e5e7eb'"
-                        onkeypress="if(event.key==='Enter') authenticateAdmin()"
-                    >
-                </div>
-                
-                <div id="authError" style="
-                    display: none;
-                    background: #fef2f2;
-                    color: #dc2626;
-                    padding: 12px;
-                    border-radius: 8px;
-                    margin-bottom: 16px;
-                    font-size: 14px;
-                "></div>
-                
-                <button onclick="authenticateAdmin()" style="
-                    width: 100%;
-                    background: #6b7280;
-                    color: white;
-                    border: none;
-                    padding: 14px;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                " onmouseover="this.style.background='#4b5563'" 
-                onmouseout="this.style.background='#6b7280'">
-                    Autenticar
-                </button>
-                
-                <button onclick="closeAdminLogin()" style="
-                    width: 100%;
-                    background: transparent;
-                    color: #6b7280;
-                    border: 1px solid #e5e7eb;
-                    padding: 14px;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    margin-top: 12px;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='#f9fafb'" 
-                onmouseout="this.style.background='transparent'">
-                    Cancelar
-                </button>
-            </div>
-        </div>
+<!-- ══════════ CHAT WIDGET ══════════ -->
+<div class="chat-widget" style="position:fixed;bottom:20px;right:80px;z-index:10000">
+    <div class="chat-bubble" onclick="toggleChat()" style="
+        width:56px;height:56px;background:linear-gradient(135deg,var(--accent),#a78bfa);
+        border-radius:50%;display:flex;align-items:center;justify-content:center;
+        cursor:pointer;box-shadow:0 4px 16px rgba(108,92,231,.4);transition:all .3s;position:relative">
+        <div style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:#ef4444;border-radius:50%;animation:pulse 2s infinite"></div>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
     </div>
 
-    <!-- Email Search Modal -->
-    <div id="emailSearchModal" style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        animation: fadeIn 0.3s ease;
-    ">
-        <div style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-        ">
-            <!-- Modal Header -->
-            <div style="
-                background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                color: white;
-                padding: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            ">
+    <div id="chatWindow" style="
+        position:fixed;bottom:90px;right:20px;width:380px;height:580px;
+        background:var(--surface);border:1px solid var(--border);border-radius:16px;
+        box-shadow:0 12px 48px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;z-index:10001">
+
+        <!-- Chat Header -->
+        <div style="padding:16px 20px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px;color:#fff">
+                <div style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:50%;display:grid;place-items:center;font-size:18px">🤖</div>
                 <div>
-                    <h2 style="margin: 0; font-size: 24px; display: flex; align-items: center; gap: 12px;">
-                        <span>📧</span> Búsqueda de Correos de la Empresa
-                    </h2>
-                    <p style="margin: 8px 0 0 0; opacity: 0.9;">
-                        Autenticado como: admin@torelo.net
-                    </p>
-                </div>
-                <button onclick="closeEmailSearch()" style="
-                    background: rgba(255, 255, 255, 0.2);
-                    border: none;
-                    color: white;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    cursor: pointer;
-                    font-size: 20px;
-                    transition: background 0.2s;
-                " onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
-                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                    ×
-                </button>
-            </div>
-            
-            <!-- Search Input Area -->
-            <div style="padding: 24px; border-bottom: 1px solid #e5e7eb;">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <input type="text" id="emailSearchInput" placeholder="Ej: últimos planos hidráulicos, estado proyecto torre 3, aprobaciones pendientes..." 
-                        style="
-                            flex: 1;
-                            padding: 16px 20px;
-                            border: 2px solid #e5e7eb;
-                            border-radius: 12px;
-                            font-size: 16px;
-                            outline: none;
-                            transition: border-color 0.2s;
-                        " 
-                        onfocus="this.style.borderColor='#059669'"
-                        onblur="this.style.borderColor='#e5e7eb'"
-                        onkeypress="if(event.key==='Enter') searchEmails()"
-                    >
-                    <button onclick="searchEmails()" style="
-                        background: #059669;
-                        color: white;
-                        border: none;
-                        padding: 16px 32px;
-                        border-radius: 12px;
-                        font-size: 16px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    " onmouseover="this.style.background='#047857'" 
-                    onmouseout="this.style.background='#059669'">
-                        <span>🔍</span> Buscar
-                    </button>
-                </div>
-                
-                <!-- Quick Search Suggestions -->
-                <div style="margin-top: 16px;">
-                    <span style="color: #6b7280; font-size: 14px; display: block; margin-bottom: 8px;">
-                        Ejemplos de búsquedas inteligentes:
-                    </span>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <button onclick="quickEmailSearch('últimos planos hidráulicos')" class="quick-search-chip">
-                            últimos planos hidráulicos
-                        </button>
-                        <button onclick="quickEmailSearch('estado del proyecto torre 3')" class="quick-search-chip">
-                            estado del proyecto torre 3
-                        </button>
-                        <button onclick="quickEmailSearch('aprobaciones pendientes construcción')" class="quick-search-chip">
-                            aprobaciones pendientes construcción
-                        </button>
-                        <button onclick="quickEmailSearch('cambios en presupuesto obra')" class="quick-search-chip">
-                            cambios en presupuesto obra
-                        </button>
-                        <button onclick="quickEmailSearch('cronograma actualizado cimentación')" class="quick-search-chip">
-                            cronograma actualizado cimentación
-                        </button>
-                    </div>
+                    <div style="font-size:14px;font-weight:600">Asistente de Búsqueda</div>
+                    <div style="font-size:11px;opacity:.85">Busco archivos y emails por ti</div>
                 </div>
             </div>
-            
-            <!-- Results Area -->
-            <div id="emailSearchResults" style="
-                flex: 1;
-                overflow-y: auto;
-                padding: 24px;
-                background: #f7f9fc;
-            ">
-                <!-- Initial State -->
-                <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
-                    <h3 style="margin: 0 0 8px 0; color: #374151;">Búsqueda Inteligente de Correos</h3>
-                    <p style="font-size: 16px; margin-bottom: 20px;">
-                        Haga preguntas naturales como:
-                    </p>
-                    <div style="
-                        background: white;
-                        border: 1px solid #e5e7eb;
-                        border-radius: 8px;
-                        padding: 20px;
-                        max-width: 500px;
-                        margin: 0 auto;
-                        text-align: left;
-                    ">
-                        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1f2937;">
-                            ✨ Ejemplos de búsquedas inteligentes:
-                        </p>
-                        <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                            <li>"Quiero los últimos planos hidráulicos"</li>
-                            <li>"Estado actual del proyecto torre 3"</li>
-                            <li>"Aprobaciones pendientes de construcción"</li>
-                            <li>"Cambios en el presupuesto de la obra"</li>
-                            <li>"Cronograma actualizado de cimentación"</li>
-                        </ul>
+            <button onclick="toggleChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px">×</button>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg)">
+            <div style="display:flex;gap:8px;align-items:flex-start">
+                <div style="width:28px;height:28px;background:var(--accent-glow);border-radius:50%;display:grid;place-items:center;font-size:13px;flex-shrink:0">🤖</div>
+                <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:85%">
+                    ¡Hola! 👋 Soy tu asistente de búsqueda. Puedo ayudarte a encontrar:
+                    <ul style="margin:6px 0 0 16px;padding:0;font-size:12px;color:var(--text-dim)">
+                        <li>📄 Documentos y reportes</li>
+                        <li>📧 Emails importantes</li>
+                        <li>📊 Archivos de datos</li>
+                    </ul>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+                        <span class="chip" onclick="sendSuggestion('Buscar reporte de inventario')">Reporte de inventario</span>
+                        <span class="chip" onclick="sendSuggestion('Facturas del mes pasado')">Facturas recientes</span>
+                        <span class="chip" onclick="sendSuggestion('Email de proyecto')">Emails de proyecto</span>
                     </div>
-                    <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
-                        El sistema buscará inteligentemente todos los correos relacionados,<br>
-                        los validará, agrupará y construirá un consenso completo para responder su consulta.
-                    </p>
                 </div>
             </div>
         </div>
+
+        <!-- Chat Input -->
+        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface)">
+            <input type="text" id="chatInput" class="input-field" style="flex:1;font-size:13px"
+                placeholder="Escribe qué necesitas encontrar..."
+                onkeypress="if(event.key==='Enter')sendChatMessage()">
+            <button onclick="sendChatMessage()" class="btn btn-primary" style="padding:8px 14px;font-size:14px">➤</button>
+        </div>
     </div>
+</div>
 
-    <script>
-    // Email Search Configuration - UPDATED FOR DIRECT API CALLS
-    const EMAIL_SEARCH_API = 'http://3-134-178-28:5000/api/email-search';  // Update with your server URL
-    const DOWNLOAD_API = 'http://3-134-178-28:5000/api/download-results';
-    const ADMIN_EMAIL = 'admin@torelo.net';
-    const ADMIN_PASSWORD = 'kongisking';
-    let isAuthenticated = false;
+<!-- ══════════ TOAST ══════════ -->
+<div class="toast" id="toast"></div>
 
-    // Check if admin is already authenticated on page load
-    window.addEventListener('DOMContentLoaded', function() {
-        checkAuthStatus();
+<script>
+// ─── Config ───
+const EMAIL_SEARCH_API = 'http://3-134-178-28:5000/api/email-search';
+const DOWNLOAD_API = 'http://3-134-178-28:5000/api/download-results';
+const ADMIN_EMAIL = 'admin@torelo.net';
+const ADMIN_PASSWORD = 'kongisking';
+let isAuthenticated = false;
+
+// ─── Report type metadata ───
+const reportTypes = {
+    'Odoo_Project_Plan_MS_Project_Style': { icon: '📋', name: 'Plan de Proyectos', desc: 'Vista estilo MS Project' },
+    'Material_Movement_Report':           { icon: '📦', name: 'Movimientos de Material', desc: 'Inventario y transferencias' },
+    'master_stock_movements':             { icon: '📊', name: 'Datos de Stock CSV', desc: 'Datos para análisis' },
+    'Reporte_Inventario':                 { icon: '📈', name: 'Reporte de Inventario', desc: 'Demanda y disponibilidad' },
+    'Purchase_Order_Report':              { icon: '🛒', name: 'Órdenes de Compra', desc: 'POs, recepciones y pagos' },
+    'cash_flow':                          { icon: '💰', name: 'Flujo de Caja', desc: 'Proyecciones semanales' },
+    'attendance':                         { icon: '👷', name: 'Asistencia', desc: 'Registros de personal' },
+    'asistencia':                         { icon: '👷', name: 'Asistencia', desc: 'Registros de personal' }
+};
+
+function getReportType(filename) {
+    for (const [key, value] of Object.entries(reportTypes)) {
+        if (filename.toLowerCase().includes(key.toLowerCase())) return value;
+    }
+    return { icon: '📄', name: filename.replace(/\.\w+$/, '').replace(/_/g, ' '), desc: 'Reporte generado' };
+}
+
+// ─── Sidebar ───
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    sb.classList.toggle('open');
+    sb.classList.toggle('collapsed');
+}
+
+// Close sidebar on mobile when clicking a nav link
+document.querySelectorAll('.nav-item[href]').forEach(a => {
+    a.addEventListener('click', () => {
+        if (window.innerWidth <= 840) document.getElementById('sidebar').classList.remove('open');
     });
+});
 
-    function checkAuthStatus() {
-        // Check session storage for auth status
-        const authData = sessionStorage.getItem('emailSearchAuth');
-        if (authData) {
-            const auth = JSON.parse(authData);
-            if (auth.email === ADMIN_EMAIL && auth.authenticated) {
-                isAuthenticated = true;
-                showEmailSearchButton();
-            }
-        }
-    }
+// ─── Toast ───
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
 
-    function showAdminLogin() {
-        document.getElementById('adminLoginModal').style.display = 'block';
-        document.getElementById('adminPassword').focus();
-    }
+// ─── Load Dashboard Data ───
+async function loadDashboard() {
+    try {
+        const resp = await fetch('latest/status.json?' + Date.now());
+        const data = await resp.json();
 
-    function closeAdminLogin() {
-        document.getElementById('adminLoginModal').style.display = 'none';
-        document.getElementById('adminPassword').value = '';
-        document.getElementById('authError').style.display = 'none';
-    }
+        // KPI: Files
+        const totalFiles = (data.files_generated?.length || 0) + (data.attendance_files?.length || 0);
+        document.getElementById('kpiFiles').textContent = totalFiles;
+        document.getElementById('kpiFilesDate').textContent = `Carpeta: ${data.date_folder || '—'}`;
 
-    function authenticateAdmin() {
-        const passwordInput = document.getElementById('adminPassword').value;
-        const errorDiv = document.getElementById('authError');
-        
-        if (passwordInput === ADMIN_PASSWORD) {
-            // Authentication successful
-            isAuthenticated = true;
-            sessionStorage.setItem('emailSearchAuth', JSON.stringify({
-                email: ADMIN_EMAIL,
-                authenticated: true,
-                timestamp: new Date().toISOString()
-            }));
-            
-            closeAdminLogin();
-            showEmailSearchButton();
-            openEmailSearch();
-        } else {
-            // Authentication failed
-            errorDiv.textContent = 'Contraseña inválida. Acceso denegado.';
-            errorDiv.style.display = 'block';
-            document.getElementById('adminPassword').value = '';
-        }
-    }
+        // KPI: Scripts
+        document.getElementById('kpiSuccess').textContent = `${data.success_count || 0}/${data.total_scripts || 0}`;
+        document.getElementById('kpiSuccessSub').textContent = data.failed_scripts?.length
+            ? `⚠️ Fallidos: ${data.failed_scripts.join(', ')}` : 'Todos los scripts OK';
 
-    function showEmailSearchButton() {
-        document.getElementById('adminLoginButton').style.display = 'none';
-        document.getElementById('emailSearchButton').style.display = 'flex';
-    }
+        // KPI: Inventory
+        const invCount = (data.summary?.inventory_reports || 0) + (data.summary?.cash_flow_reports || 0);
+        document.getElementById('kpiInventory').textContent = invCount;
 
-    function checkEmailSearchAuth() {
-        if (isAuthenticated) {
-            openEmailSearch();
-        } else {
-            showAdminLogin();
-        }
-    }
+        // KPI: Time
+        const updateTime = new Date(data.last_update);
+        document.getElementById('kpiTime').textContent = updateTime.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('kpiTimeDate').textContent = updateTime.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
-    function openEmailSearch() {
-        if (!isAuthenticated) {
-            showAdminLogin();
+        // Status pill
+        const allOk = data.success_count === data.total_scripts;
+        const pill = document.getElementById('statusPill');
+        const label = document.getElementById('statusLabel');
+        pill.className = `status-pill ${allOk ? 'ok' : 'warn'}`;
+        label.textContent = `Actualizado ${updateTime.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Server dot
+        document.getElementById('serverDot').className = 'dot';
+        document.getElementById('serverStatus').textContent = `Conectado — ${data.date_folder || 'hoy'}`;
+
+        // ── Render report list ──
+        const allFiles = [...(data.files_generated || []), ...(data.attendance_files || [])];
+        const container = document.getElementById('latestReports');
+
+        if (allFiles.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><p>No hay reportes disponibles</p></div>';
             return;
         }
-        
-        document.getElementById('emailSearchModal').style.display = 'block';
-        document.getElementById('emailSearchInput').focus();
-    }
 
-    function closeEmailSearch() {
-        document.getElementById('emailSearchModal').style.display = 'none';
-    }
-
-    function quickEmailSearch(query) {
-        document.getElementById('emailSearchInput').value = query;
-        searchEmails();
-    }
-
-    async function searchEmails() {
-        const input = document.getElementById('emailSearchInput');
-        const query = input.value.trim();
-        
-        if (!query) {
-            alert('Por favor ingrese palabras clave para buscar');
-            return;
-        }
-        
-        const resultsDiv = document.getElementById('emailSearchResults');
-        
-        // Show loading state
-        resultsDiv.innerHTML = `
-            <div style="text-align: center; padding: 60px 20px;">
-                <div class="loading-spinner"></div>
-                <h3 style="margin: 20px 0 8px 0; color: #374151;">Búsqueda Inteligente en Progreso...</h3>
-                <p style="color: #6b7280;">Analizando: "${query}"</p>
-                <div style="
-                    margin-top: 20px;
-                    background: white;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
-                    padding: 16px;
-                    max-width: 400px;
-                    margin-left: auto;
-                    margin-right: auto;
-                    text-align: left;
-                ">
-                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">
-                        <span style="color: #059669;">✓</span> Identificando conceptos relacionados...
-                    </p>
-                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280;">
-                        <span class="loading-spinner" style="width: 12px; height: 12px; display: inline-block;"></span> Buscando en todos los buzones...
-                    </p>
-                    <p style="margin: 0; font-size: 14px; color: #6b7280;">
-                        ⏳ Validando relevancia y construyendo consenso...
-                    </p>
+        container.innerHTML = allFiles.map(file => {
+            const info = getReportType(file);
+            const ext = file.split('.').pop().toUpperCase();
+            return `
+                <div class="report-row">
+                    <span class="r-icon">${info.icon}</span>
+                    <div class="r-info">
+                        <div class="r-name">${info.name}</div>
+                        <div class="r-meta">${ext} · ${info.desc}</div>
+                    </div>
+                    <a href="latest/${file}" download class="r-download">⬇ Descargar</a>
                 </div>
-                <p style="color: #9ca3af; font-size: 13px; margin-top: 16px;">
-                    Esto puede tomar un momento mientras analizamos todos los correos relevantes
+            `;
+        }).join('');
+
+        // Report date pill
+        document.getElementById('reportDatePill').style.display = 'inline-flex';
+        document.getElementById('reportDateLabel').textContent = data.date_folder || 'Hoy';
+
+        // ── Archive ──
+        loadArchive(data);
+
+    } catch (err) {
+        console.error('Dashboard load error:', err);
+        document.getElementById('serverDot').className = 'dot error';
+        document.getElementById('serverStatus').textContent = 'Sin conexión';
+        document.getElementById('statusPill').className = 'status-pill err';
+        document.getElementById('statusLabel').textContent = 'Error de conexión';
+        document.getElementById('latestReports').innerHTML =
+            '<div class="empty-state"><div class="es-icon">⚠️</div><p>Error al cargar reportes. Recarga la página.</p></div>';
+    }
+}
+
+function loadArchive(data) {
+    const container = document.getElementById('archiveReports');
+    const currentDate = data.date_folder || new Date().toISOString().split('T')[0];
+    const fileCount = (data.files_generated?.length || 0) + (data.attendance_files?.length || 0);
+
+    container.innerHTML = `
+        <div class="archive-folder" onclick="this.classList.toggle('open')">
+            <div class="archive-header">
+                <div class="ah-left">
+                    <span class="ah-arrow">▶</span>
+                    <span>📅</span>
+                    <span>${currentDate}</span>
+                    <span class="status-pill ok" style="font-size:10px;padding:2px 8px">${fileCount} archivos</span>
+                </div>
+            </div>
+            <div class="archive-body">
+                <p style="color:var(--text-muted);font-size:13px">
+                    Para ver archivos históricos, accede a:
+                    <a href="/reports/${currentDate}/" style="color:var(--accent-soft)">/reports/${currentDate}/</a>
                 </p>
             </div>
-        `;
-        
-        try {
-            // Call our Python API directly
-            const response = await fetch(EMAIL_SEARCH_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    query: query,
-                    auth: {
-                        email: ADMIN_EMAIL,
-                        authenticated: isAuthenticated
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                displayEmailResults(data, query);
-            } else {
-                throw new Error(data.error || 'Search failed');
-            }
-            
-        } catch (error) {
-            console.error('Search error:', error);
-            resultsDiv.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px; color: #dc2626;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-                    <h3 style="margin: 0 0 8px 0;">Error de Búsqueda</h3>
-                    <p>No se pudo buscar correos. Por favor verifique que el servidor de búsqueda esté funcionando.</p>
-                    <p style="font-size: 14px; margin-top: 8px; color: #6b7280;">${error.message}</p>
-                    <button onclick="searchEmails()" style="
-                        margin-top: 16px;
-                        background: #059669;
-                        color: white;
-                        border: none;
-                        padding: 10px 20px;
-                        border-radius: 6px;
-                        cursor: pointer;
-                    ">Intentar de Nuevo</button>
-                </div>
-            `;
+        </div>
+        <div style="text-align:center;color:var(--text-muted);margin-top:12px;font-size:12px;padding:12px;background:var(--surface-2);border-radius:8px">
+            💡 Los reportes históricos se organizan automáticamente por fecha.<br>
+            Cada día a las 6:30 AM se genera una nueva carpeta.
+        </div>
+    `;
+}
+
+// ─── Auth ───
+window.addEventListener('DOMContentLoaded', () => {
+    loadDashboard();
+    checkAuthStatus();
+});
+
+function checkAuthStatus() {
+    const authData = sessionStorage.getItem('emailSearchAuth');
+    if (authData) {
+        const auth = JSON.parse(authData);
+        if (auth.email === ADMIN_EMAIL && auth.authenticated) {
+            isAuthenticated = true;
+            document.getElementById('navEmailSearch').style.display = 'flex';
         }
     }
+}
 
-    function displayEmailResults(data, query) {
-        const resultsDiv = document.getElementById('emailSearchResults');
-        
-        if (!data.emails || data.emails.length === 0) {
-            resultsDiv.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-                    <h3 style="margin: 0 0 8px 0; color: #374151;">No se encontraron resultados</h3>
-                    <p>No se encontraron correos que coincidan con "${query}"</p>
-                    <p style="font-size: 14px; margin-top: 8px;">
-                        Se buscaron ${data.stats?.usersSearched || 0} buzones
-                    </p>
-                </div>
-            `;
+function showAdminLogin() {
+    document.getElementById('adminLoginModal').classList.add('show');
+    setTimeout(() => document.getElementById('adminPassword').focus(), 200);
+}
+function closeAdminLogin() {
+    document.getElementById('adminLoginModal').classList.remove('show');
+    document.getElementById('adminPassword').value = '';
+    document.getElementById('authError').style.display = 'none';
+}
+
+function authenticateAdmin() {
+    const pw = document.getElementById('adminPassword').value;
+    if (pw === ADMIN_PASSWORD) {
+        isAuthenticated = true;
+        sessionStorage.setItem('emailSearchAuth', JSON.stringify({ email: ADMIN_EMAIL, authenticated: true, timestamp: new Date().toISOString() }));
+        closeAdminLogin();
+        document.getElementById('navEmailSearch').style.display = 'flex';
+        showToast('✅ Autenticación exitosa');
+        openEmailSearch();
+    } else {
+        const err = document.getElementById('authError');
+        err.textContent = 'Contraseña inválida. Acceso denegado.';
+        err.style.display = 'block';
+        document.getElementById('adminPassword').value = '';
+    }
+}
+
+function checkEmailSearchAuth() {
+    isAuthenticated ? openEmailSearch() : showAdminLogin();
+}
+function openEmailSearch() {
+    if (!isAuthenticated) { showAdminLogin(); return; }
+    document.getElementById('emailSearchModal').classList.add('show');
+    setTimeout(() => document.getElementById('emailSearchInput').focus(), 200);
+}
+function closeEmailSearch() {
+    document.getElementById('emailSearchModal').classList.remove('show');
+}
+
+function quickEmailSearch(query) {
+    document.getElementById('emailSearchInput').value = query;
+    searchEmails();
+}
+
+async function searchEmails() {
+    const query = document.getElementById('emailSearchInput').value.trim();
+    if (!query) return;
+
+    const results = document.getElementById('emailSearchResults');
+    results.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div><p style="margin-top:12px;font-size:13px;color:var(--text-muted)">Buscando: "' + escapeHtml(query) + '"</p></div>';
+
+    try {
+        const resp = await fetch(EMAIL_SEARCH_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, email: ADMIN_EMAIL })
+        });
+        const data = await resp.json();
+
+        if (!data.results || data.results.length === 0) {
+            results.innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><p>No se encontraron resultados para "' + escapeHtml(query) + '"</p></div>';
             return;
         }
-        
-        // Build results HTML
-        let html = `
-            <div style="margin-bottom: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0 0 8px 0; color: #374151;">
-                            Resultados para: "${query}"
-                        </h3>
-                        <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                            Se encontraron ${data.stats.totalEmails} correos • 
-                            ${data.stats.validatedEmails} validados como relevantes •
-                            ${data.stats.usersSearched} buzones buscados
-                        </p>
-                        ${data.searchContext && data.searchContext.concepts && Object.keys(data.searchContext.concepts).length > 0 ? `
-                            <p style="margin: 4px 0 0 0; color: #059669; font-size: 13px;">
-                                <strong>Conceptos identificados:</strong> ${Object.keys(data.searchContext.concepts).map(c => {
-                                    const conceptLabels = {
-                                        'hydraulics': '💧 Hidráulica',
-                                        'plans': '📐 Planos',
-                                        'latest': '🆕 Reciente',
-                                        'electrical': '⚡ Eléctrico',
-                                        'structural': '🏗️ Estructural',
-                                        'status': '📊 Estado',
-                                        'report': '📄 Reporte',
-                                        'approval': '✅ Aprobación',
-                                        'materials': '🧱 Materiales',
-                                        'schedule': '📅 Cronograma',
-                                        'budget': '💰 Presupuesto'
-                                    };
-                                    return conceptLabels[c] || c;
-                                }).join(', ')}
-                            </p>
-                        ` : ''}
-                        ${data.searchContext && data.searchContext.searchTerms ? `
-                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">
-                                <strong>Términos buscados:</strong> ${data.searchContext.searchTerms.slice(0, 10).join(', ')}${data.searchContext.searchTerms.length > 10 ? '...' : ''}
-                            </p>
-                        ` : ''}
-                    </div>
-                    ${data.resultsFile ? `
-                        <a href="${DOWNLOAD_API}/${data.resultsFile}" 
-                           target="_blank"
-                           style="
-                            background: #059669;
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-decoration: none;
-                            font-size: 14px;
-                            display: flex;
-                            align-items: center;
-                            gap: 6px;
-                        ">
-                            <span>📥</span> Descargar Resultados Completos
-                        </a>
-                    ` : ''}
+
+        results.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${data.results.length} resultado(s)</p>` +
+            data.results.map(r => `
+                <div class="email-result">
+                    <div class="er-subject">${escapeHtml(r.subject || 'Sin asunto')}</div>
+                    <div class="er-meta">De: ${escapeHtml(r.from || '—')} · ${r.date || ''} · Para: ${formatRecipients(r.to)}</div>
+                    ${r.snippet ? `<div class="er-snippet">${escapeHtml(r.snippet)}</div>` : ''}
                 </div>
-            </div>
-        `;
-        
-        // Consensus Section - This is the main answer
-        if (data.consensus) {
-            html += `
-                <div style="
-                    background: linear-gradient(135deg, #047857 0%, #059669 100%);
-                    color: white;
-                    padding: 24px;
-                    border-radius: 12px;
-                    margin-bottom: 24px;
-                    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-                ">
-                    <h4 style="margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; font-size: 20px;">
-                        <span>🎯</span> Respuesta Inteligente a su Consulta
-                    </h4>
-                    <div style="
-                        background: rgba(255, 255, 255, 0.1);
-                        padding: 12px;
-                        border-radius: 8px;
-                        margin-bottom: 16px;
-                        font-size: 14px;
-                        font-style: italic;
-                    ">
-                        💡 Esta es la respuesta consolidada basada en el análisis de todos los correos relevantes encontrados
-                    </div>
-                    <div style="white-space: pre-wrap; line-height: 1.8; font-size: 15px;">
-                        ${escapeHtml(data.consensus)}
-                    </div>
-                </div>
-            `;
-        } else if (data.summary) {
-            // Fallback to summary if no consensus (for backward compatibility)
-            html += `
-                <div class="email-summary">
-                    <h4 style="margin: 0 0 12px 0; color: #047857; display: flex; align-items: center; gap: 8px;">
-                        <span>🤖</span> Análisis de IA - Gestión de Proyectos
-                    </h4>
-                    <div style="white-space: pre-wrap; line-height: 1.6; font-size: 14px;">${escapeHtml(data.summary)}</div>
-                </div>
-            `;
+            `).join('');
+
+    } catch (err) {
+        results.innerHTML = '<div class="empty-state"><div class="es-icon">⚠️</div><p>Error de conexión al servidor de correos</p></div>';
+    }
+}
+
+function formatRecipients(recipients) {
+    if (!recipients || recipients.length === 0) return 'Desconocido';
+    const names = recipients.slice(0, 2).map(r => r.emailAddress?.name || r.emailAddress?.address || '—');
+    if (recipients.length > 2) names.push(`+${recipients.length - 2} más`);
+    return escapeHtml(names.join(', '));
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('show');
+    });
+});
+
+// ─── Run Reports Trigger ───
+const TRIGGER_API = window.location.protocol + '//' + window.location.hostname + ':5001';
+
+async function triggerReports() {
+    const btn = document.getElementById('runReportsBtn');
+    if (btn.disabled) return;
+
+    if (!confirm('¿Ejecutar todos los scripts de reportes? Esto puede tomar varios minutos.')) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Ejecutando...';
+    btn.style.opacity = '.6';
+    showToast('🚀 Generación de reportes iniciada...');
+
+    try {
+        const resp = await fetch(TRIGGER_API + '/run-reports', { method: 'POST' });
+        const data = await resp.json();
+
+        if (resp.status === 409) {
+            showToast('⚠️ Los reportes ya se están ejecutando');
+            btn.disabled = false;
+            btn.innerHTML = '🔄 Actualizar Reportes';
+            btn.style.opacity = '1';
+            return;
         }
-        
-        // Email Groups Summary
-        if (data.stats.emailGroups) {
-            html += `
-                <div style="
-                    background: #f3f4f6;
-                    padding: 16px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                ">
-                    <h5 style="margin: 0 0 12px 0; color: #374151;">Correos Agrupados por Categoría:</h5>
-                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-                        ${Object.entries(data.stats.emailGroups).map(([group, count]) => {
-                            const groupNames = {
-                                'plans': '📐 Planos',
-                                'status_updates': '📊 Actualizaciones',
-                                'approvals': '✅ Aprobaciones',
-                                'materials': '🧱 Materiales',
-                                'discussions': '💬 Discusiones',
-                                'other': '📄 Otros'
-                            };
-                            return `
-                                <div style="
-                                    background: white;
-                                    padding: 8px 16px;
-                                    border-radius: 20px;
-                                    border: 1px solid #e5e7eb;
-                                    font-size: 14px;
-                                ">
-                                    ${groupNames[group] || group}: <strong>${count}</strong>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // AI Summary Section (if different from consensus)
-        if (data.summary && data.summary !== data.consensus) {
-            html += `
-                <div class="email-summary">
-                    <h4 style="margin: 0 0 12px 0; color: #047857; display: flex; align-items: center; gap: 8px;">
-                        <span>🤖</span> Análisis Detallado de Gestión de Proyectos
-                    </h4>
-                    <div style="white-space: pre-wrap; line-height: 1.6; font-size: 14px;">${escapeHtml(data.summary)}</div>
-                </div>
-            `;
-        }
-        
-        // Individual email results (showing first 20)
-        html += '<div style="margin-top: 24px;">';
-        html += '<h4 style="margin: 0 0 16px 0; color: #374151;">Detalles de Correos (Mostrando primeros 20)</h4>';
-        
-        data.emails.slice(0, 20).forEach(email => {
-            const fromEmail = email.from?.emailAddress?.address || 'Desconocido';
-            const fromName = email.from?.emailAddress?.name || fromEmail;
-            
-            html += `
-                <div class="email-result-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                        <h4 style="margin: 0; color: #1f2937; flex: 1;">
-                            ${escapeHtml(email.subject || 'Sin Asunto')}
-                        </h4>
-                        <span style="font-size: 14px; color: #6b7280;">
-                            ${formatDate(email.receivedDateTime)}
-                        </span>
-                    </div>
-                    
-                    <div style="display: flex; gap: 16px; margin-bottom: 12px; font-size: 14px; color: #6b7280;">
-                        <span><strong>De:</strong> ${escapeHtml(fromName)}</span>
-                        <span><strong>Para:</strong> ${formatRecipients(email.toRecipients)}</span>
-                    </div>
-                    
-                    <p style="margin: 0 0 12px 0; color: #374151; line-height: 1.5;">
-                        ${escapeHtml(email.bodyPreview || 'Sin vista previa disponible')}
-                    </p>
-                    
-                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                        ${email.attachments && email.attachments.length > 0 ? `
-                            <div style="
-                                display: flex;
-                                align-items: center;
-                                gap: 8px;
-                                background: #f3f4f6;
-                                padding: 6px 12px;
-                                border-radius: 6px;
-                                font-size: 14px;
-                            ">
-                                <span>📎</span>
-                                <span>${email.attachments.length} archivo(s) adjunto(s):</span>
-                                ${email.attachments.map(att => `
-                                    <a href="http://3-134-178-28:5000/api/download-attachment/${email.searchedUser}/${email.id}/${att.id}"
-                                       target="_blank"
-                                       style="
-                                        color: #059669;
-                                        text-decoration: none;
-                                        font-weight: 500;
-                                        hover: underline;
-                                    ">
-                                        ${escapeHtml(att.name)}
-                                    </a>
-                                `).join(', ')}
-                            </div>
-                        ` : ''}
-                        ${email.matchedTerm ? `
-                            <span style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 6px;
-                                color: #059669;
-                                font-size: 14px;
-                            ">
-                                <span>🔍</span> Coincidencia: "${email.matchedTerm}"
-                            </span>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
+
+        // Poll for completion
+        const poll = setInterval(async () => {
+            try {
+                const sr = await fetch(TRIGGER_API + '/status');
+                const st = await sr.json();
+                if (!st.running) {
+                    clearInterval(poll);
+                    btn.disabled = false;
+                    btn.innerHTML = '🔄 Actualizar Reportes';
+                    btn.style.opacity = '1';
+                    if (st.last_status === 'success') {
+                        showToast(`✅ Reportes generados en ${st.last_duration}s`);
+                        setTimeout(() => loadDashboard(), 1000);
+                    } else {
+                        showToast('⚠️ Algunos scripts fallaron. Revisa el log.');
+                    }
+                }
+            } catch(e) { /* keep polling */ }
+        }, 3000);
+
+    } catch(err) {
+        showToast('❌ No se pudo conectar al servidor de reportes (puerto 5001)');
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Actualizar Reportes';
+        btn.style.opacity = '1';
+    }
+}
+
+// ─── Chat Widget ───
+const N8N_WEBHOOK_URL = 'https://3-134-178-28.nip.io/webhook/smart-search';
+let chatOpen = false;
+
+function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatWindow').style.display = chatOpen ? 'flex' : 'none';
+    if (chatOpen) document.getElementById('chatInput').focus();
+}
+
+function sendSuggestion(text) {
+    document.getElementById('chatInput').value = text;
+    sendChatMessage();
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const query = input.value.trim();
+    if (!query) return;
+    input.value = '';
+
+    const msgs = document.getElementById('chatMessages');
+
+    // User message
+    const userDiv = document.createElement('div');
+    userDiv.style.cssText = 'display:flex;justify-content:flex-end';
+    userDiv.innerHTML = `<div style="background:var(--accent);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;max-width:85%">${escapeHtml(query)}</div>`;
+    msgs.appendChild(userDiv);
+
+    // Typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'typingIndicator';
+    typingDiv.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+    typingDiv.innerHTML = `
+        <div style="width:28px;height:28px;background:var(--accent-glow);border-radius:50%;display:grid;place-items:center;font-size:13px;flex-shrink:0">🤖</div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+            <div class="spinner" style="width:16px;height:16px"></div>
+        </div>`;
+    msgs.appendChild(typingDiv);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    try {
+        const resp = await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, chatId: 'dashboard-' + Date.now() })
         });
-        
-        html += '</div>';
-        resultsDiv.innerHTML = html;
-    }
+        const data = await resp.json();
+        typingDiv.remove();
 
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        } else if (diffDays === 1) {
-            return 'Yesterday';
-        } else if (diffDays < 7) {
-            return `${diffDays} days ago`;
-        } else {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const responseText = data.response || data.output || data.text || 'No se encontraron resultados.';
+        const files = data.files || [];
+
+        let filesHtml = '';
+        if (files.length > 0) {
+            filesHtml = '<div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">' +
+                files.map(f => `<a href="${f.url || '#'}" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface-3);border-radius:6px;text-decoration:none;color:var(--text);font-size:12px;border:1px solid var(--border)">
+                    <span>${getFileIcon(f.type)}</span><span>${escapeHtml(f.name || 'Archivo')}</span>
+                </a>`).join('') + '</div>';
         }
+
+        const botDiv = document.createElement('div');
+        botDiv.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+        botDiv.innerHTML = `
+            <div style="width:28px;height:28px;background:var(--accent-glow);border-radius:50%;display:grid;place-items:center;font-size:13px;flex-shrink:0">🤖</div>
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:85%">
+                ${escapeHtml(responseText)}${filesHtml}
+            </div>`;
+        msgs.appendChild(botDiv);
+
+    } catch (err) {
+        typingDiv.remove();
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+        errDiv.innerHTML = `
+            <div style="width:28px;height:28px;background:var(--accent-glow);border-radius:50%;display:grid;place-items:center;font-size:13px;flex-shrink:0">🤖</div>
+            <div style="background:var(--red-dim);border:1px solid rgba(255,107,107,.2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red)">
+                Error de conexión. Intenta de nuevo.
+            </div>`;
+        msgs.appendChild(errDiv);
     }
+    msgs.scrollTop = msgs.scrollHeight;
+}
 
-    function formatRecipients(recipients) {
-        if (!recipients || recipients.length === 0) return 'Unknown';
-        const names = recipients.slice(0, 2).map(r => r.emailAddress?.name || r.emailAddress?.address || 'Unknown');
-        if (recipients.length > 2) {
-            names.push(`+${recipients.length - 2} more`);
-        }
-        return names.join(', ');
-    }
+function getFileIcon(type) {
+    const icons = { xlsx:'📊', xls:'📊', pdf:'📄', doc:'📝', docx:'📝', ppt:'📽️', pptx:'📽️', csv:'📈', email:'📧', image:'🖼️' };
+    return icons[type] || '📎';
+}
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text || '';
-        return div.innerHTML;
-    }
-
-    // Close modals when clicking outside
-    window.onclick = function(event) {
-        const emailModal = document.getElementById('emailSearchModal');
-        const loginModal = document.getElementById('adminLoginModal');
-        
-        if (event.target == emailModal) {
-            closeEmailSearch();
-        } else if (event.target == loginModal) {
-            closeAdminLogin();
-        }
-    }
-
-    // Original dashboard functions
-    const reportTypes = {
-        'Odoo_Project_Plan_MS_Project_Style': {
-            icon: '📋',
-            name: 'Plan de Proyectos',
-            desc: 'Vista estilo MS Project con tareas y dependencias'
-        },
-        'Material_Movement_Report': {
-            icon: '📦',
-            name: 'Movimientos de Material',
-            desc: 'Reporte detallado de inventario y transferencias'
-        },
-        'master_stock_movements': {
-            icon: '📊',
-            name: 'Datos de Stock CSV',
-            desc: 'Datos crudos para análisis personalizado'
-        },
-        'Reporte_Inventario': {
-            icon: '📈',
-            name: 'Reporte de Inventario',
-            desc: 'Inventario actual con demanda y disponibilidad'
-        },
-        'Purchase_Order_Report': {
-            icon: '🛒',
-            name: 'Reporte de Órdenes de Compra',
-            desc: 'POs pendientes, recepciones y pagos'
-        }
-    };
-
-    function getReportType(filename) {
-        for (const [key, value] of Object.entries(reportTypes)) {
-            if (filename.includes(key)) {
-                return value;
-            }
-        }
-        return {
-            icon: '📄',
-            name: filename,
-            desc: 'Reporte generado para control de inventario'
-        };
-    }
-
-    function formatFileSize(bytes) {
-        if (!bytes) return 'N/A';
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    async function loadLatestReports() {
-        try {
-            const response = await fetch('latest/status.json?' + Date.now());
-            const data = await response.json();
-            
-            // Update status
-            const statusBadge = document.getElementById('statusBadge');
-            const statusText = document.getElementById('statusText');
-            const updateTime = new Date(data.last_update);
-            statusText.textContent = `Actualizado ${updateTime.toLocaleString('es-GT')}`;
-            statusBadge.style.background = '#10b981';
-            
-            // Display latest reports
-            const container = document.getElementById('latestReports');
-            container.innerHTML = '';
-            
-            if (data.files_generated && data.files_generated.length > 0) {
-                data.files_generated.forEach(file => {
-                    const reportInfo = getReportType(file);
-                    const card = document.createElement('div');
-                    card.className = 'report-card';
-                    card.innerHTML = `
-                        <div class="report-icon">${reportInfo.icon}</div>
-                        <div class="report-name">${reportInfo.name}</div>
-                        <div class="report-desc">${reportInfo.desc}</div>
-                        <div class="report-meta">
-                            <div class="meta-item">
-                                <span>📄</span>
-                                <span>${file.split('.').pop().toUpperCase()}</span>
-                            </div>
-                            <div class="meta-item">
-                                <span>🕒</span>
-                                <span>${updateTime.toLocaleTimeString('es-GT', {hour: '2-digit', minute: '2-digit'})}</span>
-                            </div>
-                        </div>
-                        <a href="latest/${file}" class="download-btn" download>
-                            <span>⬇</span>
-                            <span>Descargar</span>
-                        </a>
-                    `;
-                    container.appendChild(card);
-                });
-            } else {
-                container.innerHTML = '<p style="text-align: center; color: #6b7280;">No hay reportes disponibles</p>';
-            }
-        } catch (error) {
-            console.error('Error loading latest reports:', error);
-            document.getElementById('latestReports').innerHTML = 
-                '<div class="error-message">Error al cargar reportes. Por favor recarga la página.</div>';
-        }
-    }
-
-    async function loadArchiveReports() {
-        try {
-            // For now, we'll simulate the archive structure
-            const archiveContainer = document.getElementById('archiveReports');
-            
-            // Get the date from status.json to show at least today's folder
-            const response = await fetch('latest/status.json?' + Date.now());
-            const data = await response.json();
-            const currentDate = data.date_folder || new Date().toISOString().split('T')[0];
-            
-            // Create a sample archive structure
-            const archives = [
-                { date: currentDate, count: data.files_generated.length }
-            ];
-            
-            archiveContainer.innerHTML = '';
-            
-            archives.forEach(archive => {
-                const dateFolder = document.createElement('div');
-                dateFolder.className = 'date-folder';
-                dateFolder.innerHTML = `
-                    <div class="date-header" onclick="toggleFolder(this)">
-                        <div class="date-title">
-                            <span class="expand-icon">▶</span>
-                            <span>📅</span>
-                            <span>${archive.date}</span>
-                        </div>
-                        <div class="file-count">${archive.count} archivos</div>
-                    </div>
-                    <div class="date-files">
-                        <p style="text-align: center; color: #6b7280; padding: 1rem;">
-                            Para ver archivos históricos, accede a: 
-                            <a href="/reports/${archive.date}/" style="color: #5b21b6;">
-                                /reports/${archive.date}/
-                            </a>
-                        </p>
-                    </div>
-                `;
-                archiveContainer.appendChild(dateFolder);
-            });
-            
-            // Add info message
-            const infoMessage = document.createElement('div');
-            infoMessage.style.cssText = 'text-align: center; color: #6b7280; margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px;';
-            infoMessage.innerHTML = `
-                <p>💡 Los reportes históricos se organizan automáticamente por fecha.</p>
-                <p style="margin-top: 0.5rem;">Cada día a las 6:30 AM se genera una nueva carpeta con los reportes del día.</p>
-            `;
-            archiveContainer.appendChild(infoMessage);
-            
-        } catch (error) {
-            console.error('Error loading archive:', error);
-            document.getElementById('archiveReports').innerHTML = 
-                '<div class="error-message">Error al cargar el archivo. Por favor recarga la página.</div>';
-        }
-    }
-
-    function toggleFolder(element) {
-        element.parentElement.classList.toggle('expanded');
-    }
-
-    // Load reports when page loads
-    loadLatestReports();
-    loadArchiveReports();
-    
-    // Refresh every 30 seconds
-    setInterval(loadLatestReports, 30000);
-    </script>
+function formatFileSize(bytes) {
+    if (!bytes) return 'N/A';
+    const s = ['B','KB','MB','GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024,i)).toFixed(1) + ' ' + s[i];
+}
+</script>
 </body>
 </html>

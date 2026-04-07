@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torelo — Explorador de Movimientos de Stock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        :root {
+            --bg:#0f1117;--surface:#181a20;--surface-2:#1f2128;--surface-3:#262830;
+            --border:#2a2d37;--border-hover:#3d4150;
+            --text:#e4e5e9;--text-dim:#8b8f9a;--text-muted:#5c5f6b;
+            --accent:#6c5ce7;--accent-glow:rgba(108,92,231,.15);--accent-soft:#7c6ff0;
+            --green:#00d68f;--green-dim:rgba(0,214,143,.12);
+            --amber:#f0b429;--amber-dim:rgba(240,180,41,.12);
+            --red:#ff6b6b;--red-dim:rgba(255,107,107,.12);
+            --blue:#48bfe3;--blue-dim:rgba(72,191,227,.12);
+            --radius:10px;--radius-lg:14px;
+            --sidebar-w:260px;--header-h:64px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;overflow-x:hidden}
+
+        /* Sidebar — matches dashboard */
+        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:900;transition:transform .3s cubic-bezier(.4,0,.2,1)}
+        .sidebar.collapsed{transform:translateX(calc(var(--sidebar-w)*-1))}
+        .sidebar-brand{height:var(--header-h);display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+        .sidebar-brand .logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#a78bfa);border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff}
+        .sidebar-brand h2{font-size:16px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(135deg,#e4e5e9,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        .sidebar-brand small{display:block;font-size:11px;color:var(--text-muted);font-weight:400;-webkit-text-fill-color:var(--text-muted)}
+        .sidebar-nav{flex:1;overflow-y:auto;padding:16px 12px}
+        .nav-section{margin-bottom:24px}
+        .nav-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);padding:0 8px;margin-bottom:8px}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text-dim);text-decoration:none;font-size:13.5px;font-weight:500;transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+        .nav-item:hover{background:var(--surface-2);color:var(--text)}
+        .nav-item.active{background:var(--accent-glow);color:var(--accent-soft)}
+        .nav-item .nav-icon{font-size:17px;width:24px;text-align:center;flex-shrink:0}
+        .nav-item .badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--accent-glow);color:var(--accent-soft)}
+        .nav-item .badge.green{background:var(--green-dim);color:var(--green)}
+
+        /* Main */
+        .main{margin-left:var(--sidebar-w);min-height:100vh;transition:margin-left .3s}
+        .sidebar.collapsed~.main{margin-left:0}
+        .topbar{position:sticky;top:0;z-index:800;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(15,17,23,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+        .topbar-left{display:flex;align-items:center;gap:16px}
+        .menu-toggle{display:none;background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer}
+        .topbar h1{font-size:17px;font-weight:600;letter-spacing:-.2px}
+
+        .content{padding:28px;max-width:1480px}
+
+        /* KPI cards */
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+        .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+        .kpi-card:hover{border-color:var(--border-hover)}
+        .kpi-card .kpi-glow{position:absolute;top:-30px;right:-30px;width:80px;height:80px;border-radius:50%;opacity:.4;filter:blur(30px);pointer-events:none}
+        .kpi-card .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+        .kpi-card .kpi-value{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;letter-spacing:-1px}
+        .kpi-card .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+        /* Section cards */
+        .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:24px;overflow:hidden}
+        .section-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
+        .section-header h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+        .section-body{padding:20px}
+
+        /* Filters */
+        .filter-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+        .filter-group{display:flex;flex-direction:column;gap:4px;min-width:180px;flex:1}
+        .filter-group label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+        .filter-group select,.filter-group input{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
+        .filter-group select:focus,.filter-group input:focus{border-color:var(--accent)}
+        .filter-actions{display:flex;align-items:flex-end;gap:8px}
+        .btn{padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;transition:all .15s;font-family:inherit}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent-soft)}
+        .btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+        .btn-ghost:hover{background:var(--surface-2)}
+        .btn-sm{padding:6px 12px;font-size:11.5px}
+
+        /* Chart area */
+        .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+        .chart-box{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-height:200px}
+        .chart-box h3{font-size:12.5px;font-weight:600;color:var(--text-dim);margin-bottom:12px}
+        .bar-chart{display:flex;flex-direction:column;gap:6px}
+        .bar-row{display:flex;align-items:center;gap:10px}
+        .bar-label{font-size:11.5px;color:var(--text-dim);width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+        .bar-track{flex:1;height:22px;background:var(--surface-3);border-radius:4px;overflow:hidden;position:relative}
+        .bar-fill{height:100%;border-radius:4px;transition:width .4s ease;display:flex;align-items:center;padding-left:8px}
+        .bar-val{font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+
+        /* Table */
+        .table-wrap{overflow-x:auto;max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
+        table{width:100%;border-collapse:collapse;font-size:12.5px}
+        thead{position:sticky;top:0;z-index:5}
+        th{background:var(--surface-3);padding:10px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+        th:hover{color:var(--text)}
+        th .sort-arrow{font-size:10px;margin-left:3px;opacity:.5}
+        th.sorted .sort-arrow{opacity:1;color:var(--accent-soft)}
+        td{padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+        tr:hover td{background:var(--surface-2)}
+        .val-positive{color:var(--green)}
+        .val-negative{color:var(--red)}
+
+        /* Pagination */
+        .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 0;font-size:12.5px;color:var(--text-dim)}
+        .page-btns{display:flex;gap:4px}
+        .page-btn{padding:6px 12px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
+        .page-btn:hover{border-color:var(--border-hover);color:var(--text)}
+        .page-btn.active{background:var(--accent-glow);color:var(--accent-soft);border-color:var(--accent)}
+        .page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+        /* Loading */
+        .loading-screen{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px}
+        .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* Status pills */
+        .pill{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10.5px;font-weight:600}
+        .pill-in{background:var(--green-dim);color:var(--green)}
+        .pill-out{background:var(--red-dim);color:var(--red)}
+        .pill-prod{background:var(--amber-dim);color:var(--amber)}
+        .pill-adj{background:var(--blue-dim);color:var(--blue)}
+        .pill-other{background:var(--surface-3);color:var(--text-dim)}
+
+        /* Search */
+        .search-bar{position:relative;flex:2;min-width:240px}
+        .search-bar input{width:100%;padding:8px 12px 8px 34px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px}
+
+        /* Export button */
+        .export-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,.2);cursor:pointer;transition:all .15s}
+        .export-btn:hover{background:rgba(0,214,143,.2)}
+
+        /* Responsive */
+        @media(max-width:840px){
+            .sidebar{transform:translateX(calc(var(--sidebar-w)*-1))}.sidebar.open{transform:translateX(0)}
+            .main{margin-left:0!important}.menu-toggle{display:block}
+            .content{padding:20px 14px}
+            .kpi-grid{grid-template-columns:repeat(2,1fr)}
+            .chart-grid{grid-template-columns:1fr}
+            .filter-bar{flex-direction:column}
+        }
+        @media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo">T</div>
+        <div><h2>Torelo KPI<small>Centro de Inteligencia</small></h2></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-label">Principal</div>
+            <a href="/" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">Herramientas</div>
+            <a href="gantt-viewer.html" class="nav-item"><span class="nav-icon">📋</span> Plan de Proyectos</a>
+            <a href="cashflow-viewer.html" class="nav-item"><span class="nav-icon">💰</span> Flujo de Pagos</a>
+            <a href="attendance-viewer.html" class="nav-item"><span class="nav-icon">👷</span> Asistencia</a>
+            <a href="stock-explorer.html" class="nav-item active"><span class="nav-icon">📦</span> Movimientos de Stock<span class="badge green">Nuevo</span></a>
+            <a href="search.html" class="nav-item"><span class="nav-icon">🔍</span> Buscar Documentos</a>
+        </div>
+    </nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+            <h1>📦 Explorador de Movimientos de Stock</h1>
+        </div>
+    </header>
+
+    <div class="content">
+        <!-- Loading state -->
+        <div id="loadingScreen" class="loading-screen">
+            <div class="spinner"></div>
+            <p style="color:var(--text-dim);font-size:14px">Cargando datos de movimientos...</p>
+            <p style="color:var(--text-muted);font-size:12px">Procesando CSV del servidor</p>
+        </div>
+
+        <!-- Dashboard (hidden until loaded) -->
+        <div id="dashboard" style="display:none">
+
+            <!-- KPIs -->
+            <div class="kpi-grid" id="kpiGrid"></div>
+
+            <!-- Filters -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>🔎 Filtros</h2>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-ghost btn-sm" onclick="resetFilters()">↻ Limpiar</button>
+                        <button class="export-btn" onclick="exportFiltered()">⬇ Exportar CSV</button>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="filter-bar">
+                        <div class="search-bar">
+                            <input type="text" id="searchInput" placeholder="Buscar producto, proveedor, orden, proyecto..." oninput="debouncedApply()">
+                        </div>
+                        <div class="filter-group">
+                            <label>Tipo de Movimiento</label>
+                            <select id="filterType" onchange="applyFilters()"><option value="">Todos</option></select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Categoría</label>
+                            <select id="filterCategory" onchange="applyFilters()"><option value="">Todas</option></select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Propósito de Uso</label>
+                            <select id="filterPurpose" onchange="applyFilters()"><option value="">Todos</option></select>
+                        </div>
+                    </div>
+                    <div class="filter-bar">
+                        <div class="filter-group" style="max-width:180px">
+                            <label>Fecha Desde</label>
+                            <input type="date" id="filterDateFrom" onchange="applyFilters()">
+                        </div>
+                        <div class="filter-group" style="max-width:180px">
+                            <label>Fecha Hasta</label>
+                            <input type="date" id="filterDateTo" onchange="applyFilters()">
+                        </div>
+                        <div class="filter-group">
+                            <label>Proveedor / Socio</label>
+                            <select id="filterVendor" onchange="applyFilters()"><option value="">Todos</option></select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Proyecto</label>
+                            <select id="filterProject" onchange="applyFilters()"><option value="">Todos</option></select>
+                        </div>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
+                        Mostrando <strong id="filteredCount" style="color:var(--accent-soft)">0</strong> de <strong id="totalCount">0</strong> movimientos
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-grid">
+                <div class="chart-box">
+                    <h3>📊 Por Tipo de Movimiento</h3>
+                    <div id="chartType" class="bar-chart"></div>
+                </div>
+                <div class="chart-box">
+                    <h3>📦 Top 10 Categorías (por valor Q)</h3>
+                    <div id="chartCategory" class="bar-chart"></div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>📋 Detalle de Movimientos</h2>
+                    <span id="tableInfo" style="font-size:12px;color:var(--text-muted)"></span>
+                </div>
+                <div class="section-body" style="padding:0">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr id="tableHead"></tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" style="padding:12px 20px" id="paginationBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── State ───
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+const pageSize = 100;
+let sortCol = '';
+let sortAsc = true;
+
+// Table columns to display
+const columns = [
+    { key: 'movement_date', label: 'Fecha', fmt: v => v ? v.substring(0,10) : '' },
+    { key: 'product_name', label: 'Producto' },
+    { key: 'product_category', label: 'Categoría' },
+    { key: 'movement_type', label: 'Tipo', fmt: v => {
+        const cls = v?.includes('In') ? 'pill-in' : v?.includes('Out') ? 'pill-out' : v?.includes('Production') ? 'pill-prod' : v?.includes('Adjust') ? 'pill-adj' : 'pill-other';
+        return `<span class="pill ${cls}">${v||'—'}</span>`;
+    }},
+    { key: 'quantity', label: 'Cantidad', fmt: v => Number(v).toLocaleString('es-GT', {maximumFractionDigits:2}), align: 'right' },
+    { key: 'unit_of_measure', label: 'UoM' },
+    { key: 'total_value', label: 'Valor (Q)', fmt: v => {
+        const n = Number(v);
+        return `<span class="${n>0?'val-positive':''}">Q${n.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+    }, align: 'right' },
+    { key: 'usage_purpose', label: 'Propósito' },
+    { key: 'vendor_name', label: 'Proveedor' },
+    { key: 'purchase_order', label: 'OC' },
+    { key: 'project_name', label: 'Proyecto' },
+    { key: 'source_location', label: 'Origen' },
+    { key: 'destination_location', label: 'Destino' },
+    { key: 'created_by_person', label: 'Creado por' }
+];
+
+// ─── Load CSV ───
+async function loadData() {
+    try {
+        // Try CSV first, then XLSX filename
+        const files = ['latest/master_stock_movements.csv'];
+        let loaded = false;
+
+        for (const file of files) {
+            try {
+                const resp = await fetch(file + '?' + Date.now());
+                if (!resp.ok) continue;
+                const text = await resp.text();
+                const result = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+                if (result.data.length > 0) {
+                    allData = result.data;
+                    loaded = true;
+                    break;
+                }
+            } catch(e) { continue; }
+        }
+
+        if (!loaded) throw new Error('No CSV found');
+
+        // Clean numeric fields
+        allData.forEach(row => {
+            row.quantity = parseFloat(row.quantity) || 0;
+            row.total_value = parseFloat(row.total_value) || 0;
+            row.unit_cost = parseFloat(row.unit_cost) || 0;
+        });
+
+        populateFilters();
+        applyFilters();
+
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+
+    } catch(err) {
+        document.getElementById('loadingScreen').innerHTML = `
+            <div style="text-align:center">
+                <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+                <h2 style="font-size:18px;margin-bottom:8px">No se encontró el archivo CSV</h2>
+                <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">
+                    Asegúrate de que <code style="background:var(--surface-2);padding:2px 6px;border-radius:4px">latest/master_stock_movements.csv</code> exista.
+                </p>
+                <a href="/" class="btn btn-primary" style="text-decoration:none;display:inline-block">← Volver al Dashboard</a>
+            </div>`;
+    }
+}
+
+// ─── Populate filter dropdowns ───
+function populateFilters() {
+    const fill = (id, key) => {
+        const sel = document.getElementById(id);
+        const firstOpt = sel.options[0].text;
+        const vals = [...new Set(allData.map(r => r[key]).filter(Boolean))].sort();
+        sel.innerHTML = `<option value="">${firstOpt}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+    };
+    fill('filterType', 'movement_type');
+    fill('filterCategory', 'product_category');
+    fill('filterPurpose', 'usage_purpose');
+    fill('filterProject', 'project_name');
+
+    // Vendor: combine vendor_name and partner_name
+    const vendors = [...new Set(allData.map(r => r.vendor_name || r.partner_name).filter(Boolean))].sort();
+    const vSel = document.getElementById('filterVendor');
+    vSel.innerHTML = '<option value="">Todos</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+// ─── Apply filters ───
+let debounceTimer;
+function debouncedApply() { clearTimeout(debounceTimer); debounceTimer = setTimeout(applyFilters, 250); }
+
+function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const type = document.getElementById('filterType').value;
+    const cat = document.getElementById('filterCategory').value;
+    const purpose = document.getElementById('filterPurpose').value;
+    const vendor = document.getElementById('filterVendor').value;
+    const project = document.getElementById('filterProject').value;
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+
+    filteredData = allData.filter(r => {
+        if (type && r.movement_type !== type) return false;
+        if (cat && r.product_category !== cat) return false;
+        if (purpose && r.usage_purpose !== purpose) return false;
+        if (vendor && r.vendor_name !== vendor && r.partner_name !== vendor) return false;
+        if (project && r.project_name !== project) return false;
+        if (dateFrom && (r.movement_date || '') < dateFrom) return false;
+        if (dateTo && (r.movement_date || '').substring(0,10) > dateTo) return false;
+        if (search) {
+            const haystack = [r.product_name, r.product_code, r.product_category, r.vendor_name, r.partner_name,
+                r.purchase_order, r.sale_order, r.manufacturing_order, r.project_name, r.usage_purpose,
+                r.created_by_person, r.movement_reference].join(' ').toLowerCase();
+            if (!haystack.includes(search)) return false;
+        }
+        return true;
+    });
+
+    currentPage = 1;
+    renderKPIs();
+    renderCharts();
+    renderTable();
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterCategory').value = '';
+    document.getElementById('filterPurpose').value = '';
+    document.getElementById('filterVendor').value = '';
+    document.getElementById('filterProject').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    applyFilters();
+}
+
+// ─── KPIs ───
+function renderKPIs() {
+    const d = filteredData;
+    const totalVal = d.reduce((s,r) => s + r.total_value, 0);
+    const stockIn = d.filter(r => r.movement_type?.includes('In'));
+    const stockOut = d.filter(r => r.movement_type?.includes('Out'));
+    const uniqueProducts = new Set(d.map(r => r.product_name)).size;
+    const dateRange = d.length ? `${(d[d.length-1].movement_date||'').substring(0,10)} — ${(d[0].movement_date||'').substring(0,10)}` : '—';
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card"><div class="kpi-glow" style="background:var(--accent)"></div>
+            <div class="kpi-label">Movimientos</div><div class="kpi-value">${d.length.toLocaleString()}</div>
+            <div class="kpi-sub">${dateRange}</div></div>
+        <div class="kpi-card"><div class="kpi-glow" style="background:var(--green)"></div>
+            <div class="kpi-label">Valor Total</div><div class="kpi-value">Q${(totalVal/1000).toFixed(0)}K</div>
+            <div class="kpi-sub">Q${totalVal.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="kpi-card"><div class="kpi-glow" style="background:var(--green)"></div>
+            <div class="kpi-label">Stock In</div><div class="kpi-value" style="color:var(--green)">${stockIn.length.toLocaleString()}</div>
+            <div class="kpi-sub">Q${stockIn.reduce((s,r)=>s+r.total_value,0).toLocaleString('es-GT',{maximumFractionDigits:0})}</div></div>
+        <div class="kpi-card"><div class="kpi-glow" style="background:var(--red)"></div>
+            <div class="kpi-label">Stock Out</div><div class="kpi-value" style="color:var(--red)">${stockOut.length.toLocaleString()}</div>
+            <div class="kpi-sub">Q${stockOut.reduce((s,r)=>s+r.total_value,0).toLocaleString('es-GT',{maximumFractionDigits:0})}</div></div>
+        <div class="kpi-card"><div class="kpi-glow" style="background:var(--blue)"></div>
+            <div class="kpi-label">Productos Únicos</div><div class="kpi-value">${uniqueProducts.toLocaleString()}</div>
+            <div class="kpi-sub">${new Set(d.map(r=>r.product_category)).size} categorías</div></div>
+    `;
+
+    document.getElementById('filteredCount').textContent = d.length.toLocaleString();
+    document.getElementById('totalCount').textContent = allData.length.toLocaleString();
+}
+
+// ─── Charts ───
+function renderCharts() {
+    renderBarChart('chartType', groupBy(filteredData, 'movement_type', 'count'), 'count');
+    renderBarChart('chartCategory', groupBy(filteredData, 'product_category', 'value').slice(0,10), 'value');
+}
+
+function groupBy(data, key, mode) {
+    const map = {};
+    data.forEach(r => {
+        const k = r[key] || '(sin dato)';
+        if (!map[k]) map[k] = { label: k, count: 0, value: 0 };
+        map[k].count++;
+        map[k].value += r.total_value;
+    });
+    return Object.values(map).sort((a,b) => b[mode] - a[mode]);
+}
+
+function renderBarChart(containerId, items, mode) {
+    const container = document.getElementById(containerId);
+    if (!items.length) { container.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Sin datos</p>'; return; }
+    const max = Math.max(...items.map(i => i[mode]));
+    const colors = { 'Stock In': 'var(--green)', 'Stock Out': 'var(--red)', 'Production Movement': 'var(--amber)',
+        'Receipt from Supplier': 'var(--green)', 'Delivery to Customer': 'var(--blue)', 'Inventory Adjustment': 'var(--blue)' };
+
+    container.innerHTML = items.map(item => {
+        const pct = max > 0 ? (item[mode] / max * 100) : 0;
+        const color = colors[item.label] || 'var(--accent)';
+        const display = mode === 'value' ? `Q${(item.value/1000).toFixed(0)}K` : item.count.toLocaleString();
+        return `<div class="bar-row">
+            <div class="bar-label" title="${item.label}">${item.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"><span class="bar-val">${display}</span></div></div>
+        </div>`;
+    }).join('');
+}
+
+// ─── Table ───
+function renderTable() {
+    // Sort
+    let data = [...filteredData];
+    if (sortCol) {
+        data.sort((a,b) => {
+            let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+            if (['quantity','total_value','unit_cost'].includes(sortCol)) { va = Number(va); vb = Number(vb); }
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    // Header
+    document.getElementById('tableHead').innerHTML = columns.map(c =>
+        `<th class="${sortCol===c.key?'sorted':''}" style="${c.align?'text-align:'+c.align:''}" onclick="sortTable('${c.key}')">
+            ${c.label}<span class="sort-arrow">${sortCol===c.key?(sortAsc?'▲':'▼'):'⇅'}</span>
+        </th>`
+    ).join('');
+
+    // Paginate
+    const totalPages = Math.ceil(data.length / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const pageData = data.slice(start, start + pageSize);
+
+    // Body
+    document.getElementById('tableBody').innerHTML = pageData.map(row =>
+        '<tr>' + columns.map(c => {
+            const raw = row[c.key] ?? '';
+            const display = c.fmt ? c.fmt(raw) : escapeHtml(String(raw));
+            return `<td style="${c.align?'text-align:'+c.align:''}" title="${escapeHtml(String(raw))}">${display}</td>`;
+        }).join('') + '</tr>'
+    ).join('');
+
+    // Pagination
+    document.getElementById('tableInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+    const pb = document.getElementById('paginationBar');
+    if (totalPages <= 1) { pb.innerHTML = ''; return; }
+
+    let btns = `<span style="color:var(--text-muted)">${start+1}–${Math.min(start+pageSize,data.length)} de ${data.length}</span><div class="page-btns">`;
+    btns += `<button class="page-btn" onclick="goPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
+    btns += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+
+    const range = 3;
+    let s = Math.max(1, currentPage - range), e = Math.min(totalPages, currentPage + range);
+    if (s > 1) btns += `<button class="page-btn" onclick="goPage(1)">1</button>` + (s > 2 ? '<span style="color:var(--text-muted);padding:0 4px">…</span>' : '');
+    for (let i = s; i <= e; i++) btns += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    if (e < totalPages) btns += (e < totalPages-1 ? '<span style="color:var(--text-muted);padding:0 4px">…</span>' : '') + `<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+
+    btns += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+    btns += `<button class="page-btn" onclick="goPage(${totalPages})" ${currentPage===totalPages?'disabled':''}>»</button></div>`;
+    pb.innerHTML = btns;
+}
+
+function sortTable(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+}
+
+function goPage(p) { currentPage = p; renderTable(); document.querySelector('.table-wrap').scrollTop = 0; }
+
+// ─── Export ───
+function exportFiltered() {
+    const csv = Papa.unparse(filteredData);
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `stock_movements_filtered_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// ─── Init ───
+loadData();
+</script>
+</body>
+</html>

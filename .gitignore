@@ -28,3 +28,10 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+
+config.py
+venv/
+reports/
+*.log
+__pycache__/
