@@ -129,9 +129,34 @@ def run_single_script(script_name):
     return result
 
 
+import re as _re
+
+def _stable_name(filename):
+    """
+    Strip timestamp patterns from filenames to get a stable base name.
+    Examples:
+      Cash_Flow_Report_20260407_171437.xlsx  →  Cash_Flow_Report.xlsx
+      Reporte_Inventario_20260407_063025.xlsx →  Reporte_Inventario.xlsx
+      control_obra_20260407_0630.xlsx        →  control_obra.xlsx
+      Odoo_Project_Plan_MS_Project_Style_20260407_171440.xlsx
+                                             →  Odoo_Project_Plan_MS_Project_Style.xlsx
+      master_stock_movements.csv             →  master_stock_movements.csv  (unchanged)
+      cash_flow_summary_20260407_171437.json →  cash_flow_summary.json
+    """
+    name, ext = os.path.splitext(filename)
+    # Remove patterns like _20260407_171437 or _20260407_0630
+    name = _re.sub(r'_\d{8}_\d{4,6}$', '', name)
+    # Remove trailing underscores
+    name = name.rstrip('_')
+    return name + ext
+
+
 def collect_report_files(today_reports, latest_dir):
     """
     Copy generated files from today's folder into web/latest/.
+    DEDUPLICATES: when multiple timestamped versions of the same report exist,
+    only the newest version is kept. Files are copied with STABLE filenames
+    (timestamps stripped) so the dashboard always shows clean names.
     Returns (report_files, attendance_files) lists.
     """
     os.makedirs(latest_dir, exist_ok=True)
@@ -143,36 +168,54 @@ def collect_report_files(today_reports, latest_dir):
             if os.path.isfile(fp):
                 os.remove(fp)
 
-    report_files = []
-    attendance_files = []
+    # ── Gather all candidate files with their modification time ──
+    # Key = stable name, Value = (source_path, mtime, original_filename)
+    candidates = {}
 
-    # Copy from dated folder
+    # From dated folder
     if os.path.isdir(today_reports):
         for root, _dirs, files in os.walk(today_reports):
             for f in files:
+                if not f.endswith(('.xlsx', '.csv', '.json')):
+                    continue
                 src = os.path.join(root, f)
-                dst = os.path.join(latest_dir, f)
+                stable = _stable_name(f)
+                mtime = os.path.getmtime(src)
+                # Keep the newest version for each stable name
+                if stable not in candidates or mtime > candidates[stable][1]:
+                    candidates[stable] = (src, mtime, f)
 
-                if f.endswith(('.xlsx', '.csv', '.json')):
-                    shutil.copy2(src, dst)
-                    if 'asistencia' in f.lower() or 'attendance' in f.lower():
-                        attendance_files.append(f)
-                    else:
-                        report_files.append(f)
-                    print(f"   ✓ Copied {f}")
-
-    # Also grab any files written directly to REPORTS_DIR today
+    # From REPORTS_DIR root (files modified today only)
     for f in os.listdir(REPORTS_DIR):
-        if f.endswith(('.xlsx', '.csv')) and f not in report_files and f not in attendance_files:
-            src = os.path.join(REPORTS_DIR, f)
-            if datetime.fromtimestamp(os.path.getmtime(src)).date() == datetime.now().date():
-                dst = os.path.join(latest_dir, f)
-                shutil.copy2(src, dst)
-                if 'asistencia' in f.lower() or 'attendance' in f.lower():
-                    attendance_files.append(f)
-                else:
-                    report_files.append(f)
-                print(f"   ✓ Copied {f}")
+        if not f.endswith(('.xlsx', '.csv', '.json')):
+            continue
+        src = os.path.join(REPORTS_DIR, f)
+        if not os.path.isfile(src):
+            continue
+        if datetime.fromtimestamp(os.path.getmtime(src)).date() != datetime.now().date():
+            continue
+        stable = _stable_name(f)
+        mtime = os.path.getmtime(src)
+        if stable not in candidates or mtime > candidates[stable][1]:
+            candidates[stable] = (src, mtime, f)
+
+    # ── Copy winners to latest/ with stable names ──
+    report_files = []
+    attendance_files = []
+
+    for stable_name, (src, _mtime, original) in sorted(candidates.items()):
+        dst = os.path.join(latest_dir, stable_name)
+        shutil.copy2(src, dst)
+
+        if 'asistencia' in stable_name.lower() or 'attendance' in stable_name.lower():
+            attendance_files.append(stable_name)
+        else:
+            report_files.append(stable_name)
+
+        if stable_name != original:
+            print(f"   ✓ {original} → {stable_name}")
+        else:
+            print(f"   ✓ {stable_name}")
 
     return report_files, attendance_files
 
