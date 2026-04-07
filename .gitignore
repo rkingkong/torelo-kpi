@@ -1,0 +1,30 @@
+# === CREDENTIALS — NEVER COMMIT ===
+scripts/config.py
+email-search/config.ini
+
+# === Generated output ===
+reports/
+web/latest/
+web/comprehensive_attendance.json
+email-search/search_results/
+
+# === Backup files ===
+*.bak
+*.backup.*
+
+# === Logs ===
+*.log
+logs/
+
+# === Python ===
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# === OS/Editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Flow Viewer - Control de Flujo de Pagos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        /* Loading Screen */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Main Container */
+        .container {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+            background: white;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(to bottom, #10b981, #059669);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .view-toggle {
+            display: flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            padding: 4px;
+        }
+        
+        .view-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .view-btn.active {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .view-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        
+        .header-button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .header-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Filter Bar */
+        .filter-bar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-label {
+            font-size: 14px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .filter-select, .filter-input {
+            padding: 6px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .summary-title {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .summary-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #212529;
+        }
+        
+        .summary-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+        
+        /* Timeline View (Cards) */
+        .timeline-view {
+            display: block;
+        }
+        
+        .timeline-view.hidden {
+            display: none;
+        }
+        
+        .week-section {
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .week-header {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .week-header:hover {
+            background: linear-gradient(to right, #e9ecef, #dee2e6);
+        }
+        
+        .week-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212529;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .week-summary {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .week-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .week-stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        
+        .week-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #212529;
+        }
+        
+        .week-content {
+            padding: 20px;
+        }
+        
+        .week-content.collapsed {
+            display: none;
+        }
+        
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 15px;
+        }
+        
+        .payment-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .payment-card:hover {
+            border-color: #10b981;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .payment-po {
+            font-weight: 600;
+            color: #212529;
+            font-size: 14px;
+        }
+        
+        .payment-amount {
+            font-size: 16px;
+            font-weight: bold;
+            color: #10b981;
+        }
+        
+        .payment-supplier {
+            color: #495057;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .payment-vendor-ref {
+            color: #6c757d;
+            font-size: 11px;
+            margin-bottom: 6px;
+            padding: 3px 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .payment-task {
+            color: #6c757d;
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            background: white;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .payment-notes {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #495057;
+            max-height: 80px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .payment-attachments {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        
+        .attachments-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #212529;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .attachment-item:hover {
+            background: #e9ecef;
+            transform: translateX(2px);
+        }
+        
+        .attachment-icon {
+            font-size: 14px;
+        }
+        
+        .attachment-size {
+            margin-left: auto;
+            font-size: 10px;
+            color: #6c757d;
+        }
+        
+        .payment-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-label {
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        
+        .detail-value {
+            color: #212529;
+            font-size: 12px;
+        }
+        
+        .payment-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .payment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            background: #5b21b6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #4c1d95;
+            transform: translateY(-1px);
+        }
+        
+        .action-btn.task {
+            background: #059669;
+        }
+        
+        .action-btn.task:hover {
+            background: #047857;
+        }
+        
+        .action-btn.attachment {
+            background: #2563eb;
+        }
+        
+        .action-btn.attachment:hover {
+            background: #1d4ed8;
+        }
+        
+        /* Chart View */
+        .chart-view {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-view.active {
+            display: block;
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        /* Status Badges */
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-sent {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-purchase {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .expand-icon {
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        
+        .week-section.collapsed .expand-icon {
+            transform: rotate(-90deg);
+        }
+        
+        /* No Data Message */
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .attachment-badge {
+            background: #007bff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .payment-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-controls {
+                width: 100%;
+            }
+            
+            .payment-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-container" id="loadingContainer">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div style="font-size: 20px; margin-bottom: 10px;">Cargando Flujo de Pagos</div>
+            <div style="font-size: 14px; opacity: 0.8;">Procesando datos de compras y proyectos...</div>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container" id="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <h1>
+                    <span>💰</span>
+                    <span>Control de Flujo de Pagos</span>
+                </h1>
+                <div class="header-info">
+                    <div class="info-item" id="totalPending">
+                        <span>📊</span>
+                        <span>Total: Q0.00</span>
+                    </div>
+                    <div class="info-item" id="weekCount">
+                        <span>📅</span>
+                        <span>0 Semanas</span>
+                    </div>
+                    <div class="info-item" id="poCount">
+                        <span>📋</span>
+                        <span>0 Órdenes</span>
+                    </div>
+                    <div class="info-item" id="attachmentCount">
+                        <span>📎</span>
+                        <span>0 Archivos</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="view-toggle">
+                    <button class="view-btn active" onclick="switchView('timeline')">
+                        <span>📋</span>
+                        <span>Vista Semanal</span>
+                    </button>
+                    <button class="view-btn" onclick="switchView('chart')">
+                        <span>📊</span>
+                        <span>Vista Gráfica</span>
+                    </button>
+                </div>
+                
+                <button class="header-button" onclick="expandAll()">Expandir Todo</button>
+                <button class="header-button" onclick="collapseAll()">Colapsar Todo</button>
+                <button class="header-button" onclick="exportToExcel()">📊 Exportar Excel</button>
+                <button class="header-button" onclick="window.print()">🖨️ Imprimir</button>
+                <button class="header-button" onclick="goBack()" style="background: rgba(255,255,255,0.3);">← Volver</button>
+            </div>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label class="filter-label">Estado:</label>
+                <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                    <option value="all">Todos</option>
+                    <option value="draft">Borrador (RFQ)</option>
+                    <option value="sent">Enviado</option>
+                    <option value="purchase">Orden de Compra</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Proyecto:</label>
+                <select class="filter-select" id="projectFilter" onchange="applyFilters()">
+                    <option value="all">Todos los Proyectos</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Proveedor:</label>
+                <select class="filter-select" id="supplierFilter" onchange="applyFilters()">
+                    <option value="all">Todos los Proveedores</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Rango:</label>
+                <input type="number" class="filter-input" id="weeksRange" value="12" min="1" max="52" style="width: 60px;" onchange="applyFilters()">
+                <span style="font-size: 14px; color: #6c757d;">semanas</span>
+            </div>
+            
+            <div class="filter-group">
+                <input type="checkbox" id="showOnlyPending" checked onchange="applyFilters()">
+                <label for="showOnlyPending">Solo Pendientes</label>
+            </div>
+            
+            <div class="filter-group">
+                <input type="checkbox" id="groupLateOrders" checked onchange="applyFilters()">
+                <label for="groupLateOrders">Agrupar Atrasadas</label>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-title">Total Pendiente</div>
+                <div class="summary-value" id="totalAmount">Q0.00</div>
+                <div class="summary-subtitle" id="totalUSD"></div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-title">Esta Semana</div>
+                <div class="summary-value" id="thisWeekAmount">Q0.00</div>
+                <div class="summary-subtitle" id="thisWeekCount">0 órdenes</div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-title">Próxima Semana</div>
+                <div class="summary-value" id="nextWeekAmount">Q0.00</div>
+                <div class="summary-subtitle" id="nextWeekCount">0 órdenes</div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-title">Por Estado</div>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <span class="status-badge status-draft" id="draftBadge">RFQ: 0</span>
+                    <span class="status-badge status-sent" id="sentBadge">Enviado: 0</span>
+                    <span class="status-badge status-purchase" id="purchaseBadge">OC: 0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Timeline View -->
+            <div class="timeline-view" id="timelineView">
+                <div id="timelineContainer">
+                    <!-- Week sections will be generated here -->
+                </div>
+            </div>
+            
+            <!-- Chart View -->
+            <div class="chart-view" id="chartView">
+                <div class="chart-container">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let projectData = [];
+        let purchaseOrderData = [];
+        let weeklyPayments = {};
+        let cashFlowChart = null;
+        let currentView = 'timeline';
+        let totalAttachmentCount = 0;
+        let ODOO_ATTACHMENTS_DATA = {};
+        
+        // Odoo configuration
+        const ODOO_BASE_URL = 'https://www.torelo.net/web#';
+        const ODOO_COMPANY_ID = '1';
+        
+        // Load attachment data from JavaScript file
+        async function loadAttachmentData() {
+            try {
+                // Try multiple paths to find the attachment data
+                const paths = [
+                    '/latest/po_attachments.json',  // Absolute path from web root
+                    'latest/po_attachments.json',   // Relative path
+                    '../latest/po_attachments.json', // Parent directory
+                    './po_attachments.json'         // Same directory
+                ];
+                
+                let dataLoaded = false;
+                for (const path of paths) {
+                    try {
+                        console.log('Trying to load attachments from:', path);
+                        const response = await fetch(path);
+                        if (response.ok) {
+                            ODOO_ATTACHMENTS_DATA = await response.json();
+                            console.log('✅ Loaded attachment data from', path, 'for', Object.keys(ODOO_ATTACHMENTS_DATA).length, 'POs');
+                            dataLoaded = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.log('Failed to load from', path);
+                    }
+                }
+                
+                if (!dataLoaded) {
+                    console.warn('⚠️ Could not load attachment data from any path, continuing without attachments');
+                    ODOO_ATTACHMENTS_DATA = {};
+                }
+            } catch (error) {
+                console.warn('Error loading attachment data:', error);
+                ODOO_ATTACHMENTS_DATA = {};
+            }
+        }
+        
+        // Load data on startup
+        window.addEventListener('load', async function() {
+            try {
+                // First load attachment data
+                await loadAttachmentData();
+                
+                // Then load other data
+                await loadAllData();
+                processPaymentData();
+                renderContent();
+                updateSummary();
+                
+                // Hide loading and show content
+                document.getElementById('loadingContainer').style.display = 'none';
+                document.getElementById('container').style.display = 'flex';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Error al cargar los datos. Por favor, verifica que los archivos estén disponibles.');
+            }
+        });
+        
+        function cleanText(text) {
+            if (!text) return '';
+            let cleaned = text.replace(/<[^>]*>/g, ' ');
+            const textArea = document.createElement('textarea');
+            textArea.innerHTML = cleaned;
+            cleaned = textArea.value;
+            cleaned = cleaned.replace(/\s+/g, ' ').trim();
+            cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+            return cleaned;
+        }
+        
+        function getFileIcon(filename) {
+            if (!filename) return '📎';
+            const ext = filename.toLowerCase().split('.').pop();
+            const iconMap = {
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'xls': '📊', 'xlsx': '📊',
+                'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️',
+                'zip': '📦', 'rar': '📦',
+                'txt': '📃', 'csv': '📈',
+                'xml': '📋', 'msg': '✉️'
+            };
+            return iconMap[ext] || '📎';
+        }
+        
+        // Get attachments for a specific PO
+        function getAttachmentsForPO(poNumber) {
+            const data = ODOO_ATTACHMENTS_DATA[poNumber];
+            if (data && data.attachments) {
+                return data.attachments;
+            }
+            return [];
+        }
+        
+        async function loadAllData() {
+            const statusResponse = await fetch('latest/status.json?' + Date.now());
+            const statusData = await statusResponse.json();
+            
+            const msProjectFile = statusData.files_generated.find(file => 
+                file.includes('Odoo_Project_Plan_MS_Project_Style')
+            );
+            
+            const purchaseOrderFile = statusData.files_generated.find(file => 
+                file.includes('Purchase_Order_Report')
+            );
+            
+            if (!msProjectFile || !purchaseOrderFile) {
+                throw new Error('Required files not found in latest reports');
+            }
+            
+            console.log('Loading MS Project data...');
+            const projectResponse = await fetch(`latest/${msProjectFile}`);
+            const projectArrayBuffer = await projectResponse.arrayBuffer();
+            const projectWorkbook = XLSX.read(new Uint8Array(projectArrayBuffer), { type: 'array' });
+            
+            const ganttSheet = projectWorkbook.Sheets['Datos Gantt'] || projectWorkbook.Sheets['Proyectos Abiertos'];
+            projectData = XLSX.utils.sheet_to_json(ganttSheet);
+            console.log('Project data loaded:', projectData.length, 'records');
+            
+            console.log('Loading Purchase Order data...');
+            const poResponse = await fetch(`latest/${purchaseOrderFile}`);
+            const poArrayBuffer = await poResponse.arrayBuffer();
+            const poWorkbook = XLSX.read(new Uint8Array(poArrayBuffer), { type: 'array' });
+            
+            const poSheet = poWorkbook.Sheets['Open POs Summary'];
+            purchaseOrderData = XLSX.utils.sheet_to_json(poSheet);
+            console.log('Purchase Order data loaded:', purchaseOrderData.length, 'records');
+            
+            populateFilters();
+        }
+        
+        function processPaymentData() {
+            weeklyPayments = {};
+            totalAttachmentCount = 0;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const LATE_KEY = '0000-00-00-LATE';
+            
+            const statusFilter = document.getElementById('statusFilter').value;
+            const projectFilter = document.getElementById('projectFilter').value;
+            const supplierFilter = document.getElementById('supplierFilter').value;
+            const weeksRange = parseInt(document.getElementById('weeksRange').value) || 12;
+            const showOnlyPending = document.getElementById('showOnlyPending').checked;
+            const groupLateOrders = document.getElementById('groupLateOrders').checked;
+            
+            const taskInfo = {};
+            projectData.forEach(task => {
+                if (task['PO/RFQ Numbers']) {
+                    const poNumbers = task['PO/RFQ Numbers'].split(',').map(po => po.trim());
+                    poNumbers.forEach(poNum => {
+                        const cleanPO = poNum.replace(/\s*\(.*?\)\s*/g, '').replace('RFQ-', '');
+                        taskInfo[cleanPO] = {
+                            startDate: task['Fecha Inicio'],
+                            taskName: task['Tarea'],
+                            projectName: task['Proyecto'],
+                            taskId: task['Task ID'] || task['ID']
+                        };
+                    });
+                }
+            });
+            
+            purchaseOrderData.forEach(po => {
+                const poStatus = getStatusFromDisplay(po['Status']);
+                if (statusFilter !== 'all' && poStatus !== statusFilter) return;
+                if (supplierFilter !== 'all' && po['Supplier'] !== supplierFilter) return;
+                
+                let amountPending = po['Amount Pending'] || 0;
+                if (typeof amountPending === 'string') {
+                    amountPending = parseFloat(amountPending.replace(/[^0-9.-]/g, '')) || 0;
+                }
+                
+                if (showOnlyPending && amountPending === 0) return;
+                
+                const cleanPONum = po['PO Number'].replace('RFQ-', '');
+                const taskData = taskInfo[cleanPONum] || taskInfo[po['PO Number']];
+                
+                let paymentDate;
+                let actualDeliveryDate;
+                
+                const deliveryDateField = po['Delivery Date'] || po['Expected Arrival'] || po['Scheduled Date'];
+                
+                if (deliveryDateField) {
+                    actualDeliveryDate = parseExcelDate(deliveryDateField);
+                    paymentDate = actualDeliveryDate;
+                } else if (taskData && taskData.startDate) {
+                    paymentDate = parseExcelDate(taskData.startDate);
+                    actualDeliveryDate = paymentDate;
+                } else if (po['Order Date']) {
+                    const orderDate = parseExcelDate(po['Order Date']);
+                    paymentDate = new Date(orderDate);
+                    paymentDate.setDate(paymentDate.getDate() + 30);
+                    actualDeliveryDate = paymentDate;
+                } else {
+                    paymentDate = new Date(today);
+                    actualDeliveryDate = new Date(today);
+                }
+                
+                if (projectFilter !== 'all' && taskData && taskData.projectName !== projectFilter) return;
+                
+                const weekStart = getWeekStart(paymentDate);
+                let weekKey;
+                
+                const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const deliveryNormalized = new Date(actualDeliveryDate.getFullYear(), actualDeliveryDate.getMonth(), actualDeliveryDate.getDate());
+                const isActuallyLate = deliveryNormalized < todayNormalized;
+                
+                if (groupLateOrders && isActuallyLate) {
+                    weekKey = LATE_KEY;
+                    if (!weeklyPayments[weekKey]) {
+                        weeklyPayments[weekKey] = {
+                            weekStart: null,
+                            isLate: true,
+                            payments: [],
+                            total: 0,
+                            byStatus: {draft: 0, sent: 0, purchase: 0}
+                        };
+                    }
+                } else {
+                    weekKey = formatWeekKey(weekStart);
+                    const weeksFromNow = Math.floor((weekStart - today) / (7 * 24 * 60 * 60 * 1000));
+                    if (weeksFromNow > weeksRange) return;
+                    
+                    if (!weeklyPayments[weekKey]) {
+                        weeklyPayments[weekKey] = {
+                            weekStart: weekStart,
+                            payments: [],
+                            total: 0,
+                            byStatus: {draft: 0, sent: 0, purchase: 0}
+                        };
+                    }
+                }
+                
+                const poId = extractPoId(po['PO Number']);
+                
+                // GET ATTACHMENTS FROM LOADED DATA
+                const attachments = getAttachmentsForPO(po['PO Number']);
+                totalAttachmentCount += attachments.length;
+                
+                const payment = {
+                    poNumber: po['PO Number'],
+                    poId: poId,
+                    supplier: po['Supplier'],
+                    vendorReference: cleanText(po['Vendor Reference'] || ''),
+                    amount: amountPending,
+                    totalAmount: po['Total Amount'] || 0,
+                    originalCurrency: po['Currency'] || 'GTQ',
+                    status: poStatus,
+                    statusDisplay: po['Status'],
+                    orderDate: po['Order Date'],
+                    deliveryDate: deliveryDateField,
+                    paymentDate: paymentDate,
+                    actualDeliveryDate: actualDeliveryDate,
+                    taskName: taskData ? taskData.taskName : 'Sin tarea asignada',
+                    taskId: taskData ? taskData.taskId : null,
+                    projectName: taskData ? taskData.projectName : 'Sin proyecto',
+                    notes: cleanText(po['Internal Notes'] || po['Notes'] || ''),
+                    attachments: attachments,
+                    lineCount: po['Line Count'] || po['Items'] || 0,
+                    isLate: isActuallyLate
+                };
+                
+                weeklyPayments[weekKey].payments.push(payment);
+                weeklyPayments[weekKey].total += payment.amount;
+                
+                if (payment.status in weeklyPayments[weekKey].byStatus) {
+                    weeklyPayments[weekKey].byStatus[payment.status] += payment.amount;
+                }
+            });
+            
+            console.log('Processed weekly payments:', Object.keys(weeklyPayments).length, 'weeks');
+            console.log('Total attachments found:', totalAttachmentCount);
+        }
+        
+        function extractPoId(poNumber) {
+            const match = poNumber.match(/P?0*(\d+)/);
+            if (match) {
+                const baseId = parseInt(match[1]);
+                return baseId + 2;
+            }
+            return null;
+        }
+        
+        function createOdooPoUrl(poId) {
+            if (!poId) return '#';
+            return `${ODOO_BASE_URL}id=${poId}&cids=${ODOO_COMPANY_ID}&menu_id=366&action=536&model=purchase.order&view_type=form`;
+        }
+        
+        function createOdooTaskUrl(taskId) {
+            if (!taskId) return '#';
+            return `${ODOO_BASE_URL}id=${taskId}&cids=${ODOO_COMPANY_ID}&menu_id=385&action=557&model=project.task&view_type=form`;
+        }
+        
+        function getStatusFromDisplay(statusDisplay) {
+            const statusMap = {
+                'Borrador': 'draft',
+                'RFQ': 'draft',
+                'Solicitud de Cotización': 'draft',
+                'Solicitud Enviada': 'sent',
+                'Por Aprobar': 'to approve',
+                'Orden de Compra': 'purchase',
+                'Purchase Order': 'purchase'
+            };
+            return statusMap[statusDisplay] || statusDisplay.toLowerCase();
+        }
+        
+        function parseExcelDate(dateValue) {
+            if (!dateValue) return new Date();
+            if (dateValue instanceof Date) return new Date(dateValue);
+            if (typeof dateValue === 'number') {
+                const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
+                if (!isNaN(excelDate.getTime())) return excelDate;
+            }
+            if (typeof dateValue === 'string') {
+                const ddmmyyyyMatch = dateValue.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (ddmmyyyyMatch) {
+                    const [_, day, month, year] = ddmmyyyyMatch;
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                }
+                const yyyymmddMatch = dateValue.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (yyyymmddMatch) {
+                    const [_, year, month, day] = yyyymmddMatch;
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                }
+                const parsed = new Date(dateValue);
+                if (!isNaN(parsed.getTime())) return parsed;
+            }
+            return new Date();
+        }
+        
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const weekStart = new Date(d.setDate(diff));
+            weekStart.setHours(0, 0, 0, 0);
+            return weekStart;
+        }
+        
+        function formatWeekKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        function formatDate(date) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return date.toLocaleDateString('es-GT', options);
+        }
+        
+        function formatCurrency(amount) {
+            if (!amount || isNaN(amount)) amount = 0;
+            return `Q${amount.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.view-btn').classList.add('active');
+            
+            if (view === 'timeline') {
+                document.getElementById('timelineView').classList.remove('hidden');
+                document.getElementById('chartView').classList.remove('active');
+            } else {
+                document.getElementById('timelineView').classList.add('hidden');
+                document.getElementById('chartView').classList.add('active');
+                initializeChart();
+            }
+        }
+        
+        function renderContent() {
+            if (currentView === 'timeline') {
+                renderTimeline();
+            } else {
+                initializeChart();
+            }
+        }
+        
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            container.innerHTML = '';
+            
+            const sortedWeeks = Object.keys(weeklyPayments).sort();
+            
+            if (sortedWeeks.length === 0) {
+                container.innerHTML = '<div class="no-data"><div class="no-data-icon">📭</div><h3>No hay pagos pendientes</h3></div>';
+                return;
+            }
+            
+            let totalPending = 0;
+            let totalPOs = 0;
+            
+            sortedWeeks.forEach(weekKey => {
+                const week = weeklyPayments[weekKey];
+                totalPending += week.total;
+                totalPOs += week.payments.length;
+            });
+            
+            document.getElementById('totalPending').innerHTML = `<span>📊</span><span>Total: ${formatCurrency(totalPending)}</span>`;
+            document.getElementById('weekCount').innerHTML = `<span>📅</span><span>${sortedWeeks.length} Semanas</span>`;
+            document.getElementById('poCount').innerHTML = `<span>📋</span><span>${totalPOs} Órdenes</span>`;
+            
+            sortedWeeks.forEach((weekKey, index) => {
+                const week = weeklyPayments[weekKey];
+                const weekSection = document.createElement('div');
+                weekSection.className = 'week-section';
+                
+                if (week.isLate) {
+                    weekSection.innerHTML = `
+                        <div class="week-header" onclick="toggleWeek(this)" style="background: linear-gradient(to right, #fff3cd, #ffeeba);">
+                            <div class="week-title">
+                                <span class="expand-icon">▼</span>
+                                <span>⚠️ ÓRDENES ATRASADAS</span>
+                            </div>
+                            <div class="week-summary">
+                                <div class="week-stat">
+                                    <span class="week-stat-label">Órdenes</span>
+                                    <span class="week-stat-value" style="color: #856404;">${week.payments.length}</span>
+                                </div>
+                                <div class="week-stat">
+                                    <span class="week-stat-label">Total</span>
+                                    <span class="week-stat-value" style="color: #d32f2f;">${formatCurrency(week.total)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="week-content ${index > 0 ? 'collapsed' : ''}">
+                            <div class="payment-grid">
+                                ${week.payments.map(payment => createPaymentCard(payment)).join('')}
+                            </div>
+                        </div>
+                    `;
+                    if (index > 0) weekSection.classList.add('collapsed');
+                } else {
+                    const weekEnd = new Date(week.weekStart);
+                    weekEnd.setDate(weekEnd.getDate() + 6);
+                    
+                    weekSection.innerHTML = `
+                        <div class="week-header" onclick="toggleWeek(this)">
+                            <div class="week-title">
+                                <span class="expand-icon">▼</span>
+                                <span>📅 Semana del ${formatDate(week.weekStart)} al ${formatDate(weekEnd)}</span>
+                            </div>
+                            <div class="week-summary">
+                                <div class="week-stat">
+                                    <span class="week-stat-label">Órdenes</span>
+                                    <span class="week-stat-value">${week.payments.length}</span>
+                                </div>
+                                <div class="week-stat">
+                                    <span class="week-stat-label">Total</span>
+                                    <span class="week-stat-value">${formatCurrency(week.total)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="week-content ${index > 2 ? 'collapsed' : ''}">
+                            <div class="payment-grid">
+                                ${week.payments.map(payment => createPaymentCard(payment)).join('')}
+                            </div>
+                        </div>
+                    `;
+                    if (index > 2) weekSection.classList.add('collapsed');
+                }
+                
+                container.appendChild(weekSection);
+            });
+        }
+        
+        function createPaymentCard(payment) {
+            const statusClass = `status-${payment.status}`;
+            const statusText = payment.status === 'draft' ? 'RFQ' : payment.statusDisplay;
+            const poUrl = createOdooPoUrl(payment.poId);
+            const taskUrl = createOdooTaskUrl(payment.taskId);
+            
+            let daysLateText = '';
+            if (payment.isLate) {
+                const today = new Date();
+                const daysDiff = Math.floor((today - payment.actualDeliveryDate) / (1000 * 60 * 60 * 24));
+                if (daysDiff > 0) {
+                    daysLateText = `<span style="color: #d32f2f; font-weight: bold; font-size: 11px;">⚠️ ${daysDiff} días atrasado</span>`;
+                }
+            }
+            
+            let vendorRefHtml = '';
+            if (payment.vendorReference) {
+                vendorRefHtml = `<div class="payment-vendor-ref">📌 Ref: ${payment.vendorReference}</div>`;
+            }
+            
+            let notesHtml = '';
+            if (payment.notes && payment.notes.trim()) {
+                notesHtml = `<div class="payment-notes">📝 ${payment.notes}</div>`;
+            }
+            
+            // Create attachments section
+            let attachmentsHtml = '';
+            if (payment.attachments && payment.attachments.length > 0) {
+                attachmentsHtml = `
+                    <div class="payment-attachments">
+                        <div class="attachments-title">📎 Archivos Adjuntos (${payment.attachments.length})</div>
+                        ${payment.attachments.map(att => `
+                            <a href="${att.download_url}" 
+                               target="_blank" 
+                               class="attachment-item"
+                               title="${att.name}">
+                                <span class="attachment-icon">${att.icon || getFileIcon(att.name)}</span>
+                                <span>${att.name}</span>
+                                <span class="attachment-size">${att.size_formatted || ''}</span>
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Action buttons with download all attachments
+            let downloadAllBtn = '';
+            if (payment.attachments && payment.attachments.length > 1) {
+                downloadAllBtn = `
+                    <button onclick="downloadAllAttachments('${payment.poNumber}')" 
+                            class="action-btn attachment">
+                        📥 Descargar Todos (${payment.attachments.length})
+                    </button>
+                `;
+            }
+            
+            return `
+                <div class="payment-card" ${payment.isLate ? 'style="border-color: #ffc107; background: #fffbf0;"' : ''}>
+                    <div class="payment-header">
+                        <div>
+                            <div class="payment-po">
+                                ${payment.poNumber}
+                                ${payment.attachments.length > 0 ? `<span class="attachment-badge">${payment.attachments.length}</span>` : ''}
+                            </div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            ${daysLateText}
+                        </div>
+                        <div class="payment-amount" ${payment.isLate ? 'style="color: #d32f2f;"' : ''}>${formatCurrency(payment.amount)}</div>
+                    </div>
+                    <div class="payment-supplier">🏢 ${payment.supplier}</div>
+                    ${vendorRefHtml}
+                    <div class="payment-task">📋 ${payment.taskName}</div>
+                    ${notesHtml}
+                    ${attachmentsHtml}
+                    <div class="payment-meta">
+                        <span>📁 ${payment.projectName}</span>
+                        <span>📅 ${formatDate(parseExcelDate(payment.orderDate))}</span>
+                    </div>
+                    <div class="payment-actions">
+                        <a href="${poUrl}" target="_blank" class="action-btn">🔗 Ver en Odoo</a>
+                        ${payment.taskId ? `<a href="${taskUrl}" target="_blank" class="action-btn task">📋 Ver Tarea</a>` : ''}
+                        ${downloadAllBtn}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function downloadAllAttachments(poNumber) {
+            const attachments = getAttachmentsForPO(poNumber);
+            if (attachments.length === 0) {
+                alert('No se encontraron archivos adjuntos para esta orden');
+                return;
+            }
+            
+            // Download each attachment with a small delay
+            attachments.forEach((att, index) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = att.download_url;
+                    link.download = att.name || `attachment_${index + 1}`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, index * 500);
+            });
+        }
+        
+        function toggleWeek(element) {
+            const section = element.parentElement;
+            const content = section.querySelector('.week-content');
+            section.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+        
+        function expandAll() {
+            document.querySelectorAll('.week-section').forEach(section => {
+                section.classList.remove('collapsed');
+                section.querySelector('.week-content').classList.remove('collapsed');
+            });
+        }
+        
+        function collapseAll() {
+            document.querySelectorAll('.week-section').forEach(section => {
+                section.classList.add('collapsed');
+                section.querySelector('.week-content').classList.add('collapsed');
+            });
+        }
+        
+        function updateSummary() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const thisWeekStart = getWeekStart(today);
+            const thisWeekKey = formatWeekKey(thisWeekStart);
+            
+            const nextWeekStart = new Date(thisWeekStart);
+            nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+            const nextWeekKey = formatWeekKey(nextWeekStart);
+            
+            let totalAmount = 0;
+            let draftCount = 0, sentCount = 0, purchaseCount = 0;
+            
+            Object.values(weeklyPayments).forEach(week => {
+                totalAmount += week.total;
+                week.payments.forEach(payment => {
+                    if (payment.status === 'draft') draftCount++;
+                    else if (payment.status === 'sent') sentCount++;
+                    else if (payment.status === 'purchase') purchaseCount++;
+                });
+            });
+            
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+            document.getElementById('attachmentCount').innerHTML = `<span>📎</span><span>${totalAttachmentCount} Archivos</span>`;
+            
+            const thisWeek = weeklyPayments[thisWeekKey];
+            if (thisWeek) {
+                document.getElementById('thisWeekAmount').textContent = formatCurrency(thisWeek.total);
+                document.getElementById('thisWeekCount').textContent = `${thisWeek.payments.length} órdenes`;
+            } else {
+                document.getElementById('thisWeekAmount').textContent = 'Q0.00';
+                document.getElementById('thisWeekCount').textContent = '0 órdenes';
+            }
+            
+            const nextWeek = weeklyPayments[nextWeekKey];
+            if (nextWeek) {
+                document.getElementById('nextWeekAmount').textContent = formatCurrency(nextWeek.total);
+                document.getElementById('nextWeekCount').textContent = `${nextWeek.payments.length} órdenes`;
+            } else {
+                document.getElementById('nextWeekAmount').textContent = 'Q0.00';
+                document.getElementById('nextWeekCount').textContent = '0 órdenes';
+            }
+            
+            document.getElementById('draftBadge').textContent = `RFQ: ${draftCount}`;
+            document.getElementById('sentBadge').textContent = `Enviado: ${sentCount}`;
+            document.getElementById('purchaseBadge').textContent = `OC: ${purchaseCount}`;
+        }
+        
+        function populateFilters() {
+            const projects = new Set();
+            projectData.forEach(task => {
+                if (task['Proyecto']) projects.add(task['Proyecto']);
+            });
+            
+            const projectFilter = document.getElementById('projectFilter');
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project;
+                option.textContent = project;
+                projectFilter.appendChild(option);
+            });
+            
+            const suppliers = new Set();
+            purchaseOrderData.forEach(po => {
+                if (po['Supplier']) suppliers.add(po['Supplier']);
+            });
+            
+            const supplierFilter = document.getElementById('supplierFilter');
+            suppliers.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier;
+                option.textContent = supplier;
+                supplierFilter.appendChild(option);
+            });
+        }
+        
+        function applyFilters() {
+            processPaymentData();
+            renderContent();
+            updateSummary();
+        }
+        
+        function initializeChart() {
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+            const sortedWeeks = Object.keys(weeklyPayments).filter(key => !weeklyPayments[key].isLate).sort().slice(0, 12);
+            
+            const labels = sortedWeeks.map(weekKey => {
+                const date = weeklyPayments[weekKey].weekStart;
+                return formatDate(date).substring(0, 10);
+            });
+            
+            const draftData = sortedWeeks.map(weekKey => weeklyPayments[weekKey].byStatus.draft || 0);
+            const sentData = sortedWeeks.map(weekKey => weeklyPayments[weekKey].byStatus.sent || 0);
+            const purchaseData = sortedWeeks.map(weekKey => weeklyPayments[weekKey].byStatus.purchase || 0);
+            
+            if (cashFlowChart) cashFlowChart.destroy();
+            
+            cashFlowChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Borrador (RFQ)',
+                            data: draftData,
+                            backgroundColor: '#ffc107'
+                        },
+                        {
+                            label: 'Enviado',
+                            data: sentData,
+                            backgroundColor: '#17a2b8'
+                        },
+                        {
+                            label: 'Confirmado',
+                            data: purchaseData,
+                            backgroundColor: '#28a745'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Q' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            const exportData = [];
+            const sortedWeeks = Object.keys(weeklyPayments).sort();
+            
+            sortedWeeks.forEach(weekKey => {
+                const week = weeklyPayments[weekKey];
+                week.payments.forEach(payment => {
+                    exportData.push({
+                        'Semana': week.isLate ? 'ATRASADA' : formatDate(week.weekStart),
+                        'PO Número': payment.poNumber,
+                        'Proveedor': payment.supplier,
+                        'Proyecto': payment.projectName,
+                        'Tarea': payment.taskName,
+                        'Estado': payment.statusDisplay,
+                        'Monto Pendiente': payment.amount,
+                        'Fecha Orden': formatDate(parseExcelDate(payment.orderDate)),
+                        'Archivos Adjuntos': payment.attachments.length,
+                        'Notas': payment.notes
+                    });
+                });
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Flujo de Pagos');
+            const fileName = `Flujo_Pagos_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        function goBack() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

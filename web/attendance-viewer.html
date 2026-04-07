@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Seguridad - Torre Los Beaterios</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.98);
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .title-section h1 {
+            font-size: 1.8rem;
+            color: #DC143C;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            margin-top: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .live-time {
+            font-size: 1.2rem;
+            color: #DC143C;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .back-button {
+            background: #6366f1;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            background: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        /* Date and Filter Controls */
+        .control-panel {
+            background: white;
+            padding: 1.5rem;
+            margin: 1.5rem auto;
+            max-width: 1400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #DC143C;
+        }
+
+        .btn-primary {
+            background: #DC143C;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #B91C3C;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        /* Employee Selection */
+        .employee-selector {
+            background: white;
+            padding: 1rem;
+            margin: 1rem auto;
+            max-width: 1400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .employee-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .employee-checkbox:hover {
+            background: #f3f4f6;
+        }
+
+        .employee-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .employee-checkbox label {
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .select-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Critical Alert Box */
+        .alert-box {
+            background: white;
+            border: 3px solid #DC143C;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(220, 20, 60, 0.3);
+        }
+        
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-icon {
+            font-size: 2rem;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .alert-title {
+            font-size: 1.5rem;
+            color: #DC143C;
+            font-weight: 700;
+        }
+        
+        .on-site-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .person-card {
+            background: #FFF5F5;
+            border: 2px solid #DC143C;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .person-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(220, 20, 60, 0.2);
+        }
+
+        .person-card.expanded {
+            grid-column: span 2;
+            background: white;
+        }
+        
+        .person-info h4 {
+            margin: 0 0 4px 0;
+            color: #1f2937;
+            font-size: 1.1rem;
+        }
+        
+        .person-meta {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        .time-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            display: none;
+        }
+
+        .person-card.expanded .time-details {
+            display: block;
+        }
+
+        .time-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .time-entry.lunch {
+            background: #FEF3C7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
+        
+        .time-badge {
+            background: #DC143C;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-badge.warning {
+            background: #F59E0B;
+        }
+
+        .time-badge.danger {
+            background: #EF4444;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .stat-card.critical { 
+            border-left-color: #DC143C;
+            background: #FFF5F5;
+        }
+        .stat-card.warning { border-left-color: #f59e0b; }
+        .stat-card.safe { border-left-color: #10b981; }
+        .stat-card.info { border-left-color: #3b82f6; }
+        
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        /* Table Section */
+        .table-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .filter-btn:hover {
+            border-color: #DC143C;
+            background: #FFF5F5;
+        }
+        
+        .filter-btn.active {
+            background: #DC143C;
+            color: white;
+            border-color: #DC143C;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead th {
+            background: #DC143C;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tbody tr:hover {
+            background: #FFF5F5;
+        }
+
+        .clock-times {
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .lunch-break {
+            display: inline-block;
+            background: #FEF3C7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-left: 4px;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-badge.inside {
+            background: #FEE2E2;
+            color: #DC143C;
+            font-weight: 700;
+        }
+        
+        .status-badge.outside {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #DC143C;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #DC143C;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .on-site-list {
+                grid-template-columns: 1fr;
+            }
+            .control-row {
+                flex-direction: column;
+            }
+            .control-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Cargando datos de asistencia...</p>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="header-content">
+            <div class="title-section">
+                <h1>
+                    <span>🚨</span>
+                    Control de Seguridad - Obra
+                </h1>
+                <p class="subtitle">Torre Los Beaterios - Monitoreo en Tiempo Real</p>
+            </div>
+            <div class="live-time">
+                <span>🔴</span>
+                <span id="currentTime"></span>
+            </div>
+            <a href="/" class="back-button">
+                <span>←</span>
+                <span>Dashboard Principal</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Date and Filter Controls -->
+    <div class="control-panel">
+        <div class="control-row">
+            <div class="control-group">
+                <label for="searchDate">📅 Buscar Fecha Específica</label>
+                <input type="date" id="searchDate" value="">
+            </div>
+            <div class="control-group">
+                <label for="startDate">📅 Fecha Inicio (Rango)</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="control-group">
+                <label for="endDate">📅 Fecha Fin (Rango)</label>
+                <input type="date" id="endDate">
+            </div>
+            <button class="btn-primary" onclick="searchAttendance()">
+                <span>🔍</span>
+                <span>Buscar Asistencias</span>
+            </button>
+            <button class="btn-secondary" onclick="resetFilters()">
+                <span>↻</span>
+                <span>Hoy</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Employee Selection -->
+    <div class="employee-selector">
+        <div class="select-controls">
+            <button class="btn-secondary" onclick="selectAllEmployees()">✓ Seleccionar Todos</button>
+            <button class="btn-secondary" onclick="deselectAllEmployees()">✗ Deseleccionar Todos</button>
+            <span style="margin-left: auto; color: #6b7280;">
+                <span id="selectedCount">0</span> empleados seleccionados
+            </span>
+        </div>
+        <div class="employee-grid" id="employeeGrid">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Critical Alert: Who's Currently On Site -->
+        <div class="alert-box" id="onSiteAlert">
+            <div class="alert-header">
+                <span class="alert-icon">⚠️</span>
+                <h2 class="alert-title">PERSONAL ACTUALMENTE EN OBRA</h2>
+                <span style="margin-left: auto; font-size: 1.5rem; font-weight: 700; color: #DC143C;" id="onSiteCount">0</span>
+            </div>
+            <div class="on-site-list" id="onSiteList">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card critical">
+                <div class="stat-icon">🚨</div>
+                <div class="stat-value" id="currentlyInside">0</div>
+                <div class="stat-label">Actualmente en Obra</div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="noExitRecorded">0</div>
+                <div class="stat-label">Sin Registro de Salida</div>
+            </div>
+            
+            <div class="stat-card safe">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="completedShifts">0</div>
+                <div class="stat-label">Turnos Completos Hoy</div>
+            </div>
+            
+            <div class="stat-card info">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="totalMovements">0</div>
+                <div class="stat-label">Movimientos Hoy</div>
+            </div>
+        </div>
+
+        <!-- Today's Movements with Clock Times -->
+        <div class="table-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>📋</span>
+                    Movimientos del Día - <span id="reportDate"></span>
+                </h2>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterMovements('all', this)">Todos</button>
+                    <button class="filter-btn" onclick="filterMovements('inside', this)">En Obra</button>
+                    <button class="filter-btn" onclick="filterMovements('completed', this)">Completados</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table id="movementsTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Departamento</th>
+                            <th>Entradas/Salidas</th>
+                            <th>Horas Trabajadas</th>
+                            <th>Tiempo Almuerzo</th>
+                            <th>Total Efectivo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementsBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="downloadReport()" class="btn-primary" style="margin: 0 auto; font-size: 1.1rem; padding: 14px 32px;">
+                <span>📥</span>
+                <span>Descargar Reporte Excel</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Refresh Indicator -->
+    <div class="refresh-indicator">
+        <div class="pulse-dot"></div>
+        <span>Actualización automática cada 30 segundos</span>
+    </div>
+
+    <script>
+        // Global variables
+        let comprehensiveData = null;
+        let allEmployees = [];
+        let selectedEmployees = new Set();
+        let currentFilter = 'all';
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('searchDate').value = today;
+            document.getElementById('reportDate').textContent = formatDateDisplay(today);
+            
+            // Load comprehensive data
+            loadComprehensiveData();
+        });
+
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('es-GT', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateStr = now.toLocaleDateString('es-GT', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('currentTime').textContent = `${dateStr} - ${timeStr}`;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Load comprehensive attendance data
+        async function loadComprehensiveData() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            try {
+                // Try to load the comprehensive JSON file
+                const response = await fetch('comprehensive_attendance.json');
+                if (!response.ok) {
+                    throw new Error('File not found');
+                }
+                
+                comprehensiveData = await response.json();
+                console.log('Loaded comprehensive data:', comprehensiveData);
+                
+                // Initialize employees
+                initializeEmployees();
+                
+                // Display today's data
+                displayDataForDate(document.getElementById('searchDate').value);
+                
+            } catch (error) {
+                console.log('Error loading data, using demo data:', error);
+                // Use demo data if file not found
+                generateDemoData();
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        // Initialize employee checkboxes
+        function initializeEmployees() {
+            if (!comprehensiveData) return;
+            
+            allEmployees = comprehensiveData.all_employees;
+            const grid = document.getElementById('employeeGrid');
+            
+            grid.innerHTML = allEmployees.map(emp => `
+                <div class="employee-checkbox">
+                    <input type="checkbox" id="emp_${emp.id}" value="${emp.id}" 
+                           onchange="updateEmployeeSelection(${emp.id})" checked>
+                    <label for="emp_${emp.id}">${emp.name}</label>
+                </div>
+            `).join('');
+
+            // Select all by default
+            allEmployees.forEach(emp => selectedEmployees.add(emp.id));
+            document.getElementById('selectedCount').textContent = selectedEmployees.size;
+        }
+
+        // Update employee selection
+        function updateEmployeeSelection(empId) {
+            const checkbox = document.getElementById(`emp_${empId}`);
+            if (checkbox.checked) {
+                selectedEmployees.add(empId);
+            } else {
+                selectedEmployees.delete(empId);
+            }
+            document.getElementById('selectedCount').textContent = selectedEmployees.size;
+            
+            // Refresh display with current filters
+            const currentDate = document.getElementById('searchDate').value;
+            if (currentDate) {
+                displayDataForDate(currentDate);
+            }
+        }
+
+        // Select all employees
+        function selectAllEmployees() {
+            allEmployees.forEach(emp => {
+                document.getElementById(`emp_${emp.id}`).checked = true;
+                selectedEmployees.add(emp.id);
+            });
+            document.getElementById('selectedCount').textContent = selectedEmployees.size;
+            displayDataForDate(document.getElementById('searchDate').value);
+        }
+
+        // Deselect all employees
+        function deselectAllEmployees() {
+            allEmployees.forEach(emp => {
+                document.getElementById(`emp_${emp.id}`).checked = false;
+            });
+            selectedEmployees.clear();
+            document.getElementById('selectedCount').textContent = 0;
+            displayDataForDate(document.getElementById('searchDate').value);
+        }
+
+        // Search attendance
+        function searchAttendance() {
+            const searchDate = document.getElementById('searchDate').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (startDate && endDate) {
+                // Display range data
+                displayRangeData(startDate, endDate);
+            } else if (searchDate) {
+                // Display single date
+                displayDataForDate(searchDate);
+            }
+        }
+
+        // Reset filters to today
+        function resetFilters() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('searchDate').value = today;
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            displayDataForDate(today);
+        }
+
+        // Display data for a specific date
+        function displayDataForDate(dateStr) {
+            if (!comprehensiveData) return;
+            
+            document.getElementById('reportDate').textContent = formatDateDisplay(dateStr);
+            
+            const dateData = comprehensiveData.attendance_by_date[dateStr];
+            
+            if (!dateData) {
+                // No data for this date
+                displayNoData();
+                return;
+            }
+            
+            // Filter by selected employees
+            const filteredEmployees = dateData.employees.filter(emp => 
+                selectedEmployees.has(emp.employee_id)
+            );
+            
+            // Display currently on site
+            const currentlyOnSite = filteredEmployees.filter(emp => emp.is_currently_inside);
+            displayOnSitePersonnel(currentlyOnSite);
+            
+            // Display movements table
+            displayMovementsTable(filteredEmployees);
+            
+            // Update statistics
+            updateStatistics(filteredEmployees);
+        }
+
+        // Display personnel currently on site
+        function displayOnSitePersonnel(onSiteList) {
+            const container = document.getElementById('onSiteList');
+            document.getElementById('onSiteCount').textContent = onSiteList.length;
+            
+            if (onSiteList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #10b981; font-weight: 600;">✅ No hay personal en obra en este momento</p>';
+                return;
+            }
+            
+            container.innerHTML = onSiteList.map(person => {
+                const hoursOnSite = person.total_hours || 0;
+                let badgeClass = '';
+                if (hoursOnSite > 12) badgeClass = 'danger';
+                else if (hoursOnSite > 10) badgeClass = 'warning';
+                
+                // Build clock records display
+                let clockDetails = '';
+                if (person.clock_records) {
+                    person.clock_records.forEach(record => {
+                        if (record.type === 'entry') {
+                            clockDetails += `<div class="time-entry">
+                                <span>🟢 Entrada:</span>
+                                <strong>${record.time}</strong>
+                            </div>`;
+                        } else if (record.type === 'exit') {
+                            clockDetails += `<div class="time-entry">
+                                <span>🔴 Salida:</span>
+                                <strong>${record.time}</strong>
+                            </div>`;
+                        }
+                    });
+                }
+                
+                return `
+                    <div class="person-card" onclick="toggleCard(this)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="person-info">
+                                <h4>${person.employee_name}</h4>
+                                <div class="person-meta">
+                                    ${person.department}<br>
+                                    Primera Entrada: ${person.first_entry || 'N/A'}
+                                </div>
+                            </div>
+                            <div class="time-badge ${badgeClass}">
+                                ${hoursOnSite > 12 ? '⚠️' : ''} ${hoursOnSite.toFixed(1)}h
+                            </div>
+                        </div>
+                        <div class="time-details">
+                            ${clockDetails}
+                            ${person.lunch_duration > 0 ? `
+                                <div class="time-entry lunch">
+                                    <span>🍽️ Tiempo Almuerzo:</span>
+                                    <strong>${(person.lunch_duration * 60).toFixed(0)} min</strong>
+                                </div>
+                            ` : ''}
+                            <div class="time-entry">
+                                <span>⏱️ Tiempo Total:</span>
+                                <strong>${hoursOnSite.toFixed(1)} horas</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Display movements table
+        function displayMovementsTable(employees) {
+            const tbody = document.getElementById('movementsBody');
+            
+            tbody.innerHTML = employees.map(emp => {
+                // Format clock times
+                let clockTimes = '';
+                if (emp.clock_records) {
+                    for (let i = 0; i < emp.clock_records.length; i++) {
+                        const record = emp.clock_records[i];
+                        if (record.type === 'entry') {
+                            clockTimes += `🟢 ${record.time}`;
+                            // Check if there's an exit after this
+                            if (i + 1 < emp.clock_records.length && emp.clock_records[i + 1].type === 'exit') {
+                                clockTimes += ` → 🔴 ${emp.clock_records[i + 1].time}`;
+                                i++; // Skip the next record
+                            } else {
+                                clockTimes += ' → <span style="color: #DC143C;">EN SITIO</span>';
+                            }
+                            clockTimes += '<br>';
+                        }
+                    }
+                }
+                
+                const lunchDisplay = emp.lunch_duration > 0 ? 
+                    `<span class="lunch-break">🍽️ ${(emp.lunch_duration * 60).toFixed(0)} min</span>` : 
+                    '<span style="color: #6b7280;">Sin almuerzo</span>';
+                
+                const status = emp.is_currently_inside ? 'EN OBRA' : 'COMPLETADO';
+                
+                return `
+                    <tr data-status="${status}">
+                        <td><strong>${emp.employee_name}</strong></td>
+                        <td>${emp.department}</td>
+                        <td class="clock-times">${clockTimes}</td>
+                        <td>${emp.total_hours.toFixed(1)}h</td>
+                        <td>${lunchDisplay}</td>
+                        <td><strong>${emp.effective_hours.toFixed(1)}h</strong></td>
+                        <td>
+                            <span class="status-badge ${emp.is_currently_inside ? 'inside' : 'outside'}">
+                                ${emp.is_currently_inside ? '🔴' : '✅'} ${status}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Apply current filter
+            filterMovements(currentFilter);
+        }
+
+        // Update statistics
+        function updateStatistics(employees) {
+            const onSite = employees.filter(emp => emp.is_currently_inside).length;
+            const completed = employees.filter(emp => !emp.is_currently_inside).length;
+            
+            document.getElementById('currentlyInside').textContent = onSite;
+            document.getElementById('noExitRecorded').textContent = onSite;
+            document.getElementById('completedShifts').textContent = completed;
+            document.getElementById('totalMovements').textContent = employees.length;
+        }
+
+        // Display no data message
+        function displayNoData() {
+            document.getElementById('onSiteList').innerHTML = 
+                '<p style="text-align: center; color: #6b7280;">No hay datos de asistencia para esta fecha</p>';
+            document.getElementById('movementsBody').innerHTML = 
+                '<tr><td colspan="7" style="text-align: center; color: #6b7280;">No hay movimientos registrados para esta fecha</td></tr>';
+            
+            // Reset statistics
+            document.getElementById('currentlyInside').textContent = '0';
+            document.getElementById('noExitRecorded').textContent = '0';
+            document.getElementById('completedShifts').textContent = '0';
+            document.getElementById('totalMovements').textContent = '0';
+            document.getElementById('onSiteCount').textContent = '0';
+        }
+
+        // Display range data
+        function displayRangeData(startDate, endDate) {
+            if (!comprehensiveData) return;
+            
+            document.getElementById('reportDate').textContent = 
+                `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`;
+            
+            // Aggregate data for date range
+            const employeeSummary = {};
+            
+            Object.keys(comprehensiveData.attendance_by_date).forEach(dateStr => {
+                if (dateStr >= startDate && dateStr <= endDate) {
+                    const dateData = comprehensiveData.attendance_by_date[dateStr];
+                    dateData.employees.forEach(emp => {
+                        if (selectedEmployees.has(emp.employee_id)) {
+                            if (!employeeSummary[emp.employee_id]) {
+                                employeeSummary[emp.employee_id] = {
+                                    ...emp,
+                                    days_worked: 0,
+                                    total_hours_period: 0,
+                                    dates: []
+                                };
+                            }
+                            employeeSummary[emp.employee_id].days_worked++;
+                            employeeSummary[emp.employee_id].total_hours_period += emp.total_hours;
+                            employeeSummary[emp.employee_id].dates.push(dateStr);
+                        }
+                    });
+                }
+            });
+            
+            // Display summary
+            const employees = Object.values(employeeSummary);
+            displayRangeSummaryTable(employees);
+            
+            // Update statistics for range
+            document.getElementById('currentlyInside').textContent = '0'; // Not applicable for range
+            document.getElementById('noExitRecorded').textContent = '0';
+            document.getElementById('completedShifts').textContent = employees.reduce((sum, emp) => sum + emp.days_worked, 0);
+            document.getElementById('totalMovements').textContent = employees.length;
+            document.getElementById('onSiteCount').textContent = '0';
+            document.getElementById('onSiteList').innerHTML = 
+                '<p style="text-align: center; color: #6b7280;">Vista de rango de fechas - Ver fecha específica para personal en obra</p>';
+        }
+
+        // Display range summary table
+        function displayRangeSummaryTable(employees) {
+            const tbody = document.getElementById('movementsBody');
+            
+            // Change table headers for range view
+            const thead = document.querySelector('#movementsTable thead tr');
+            thead.innerHTML = `
+                <th>Nombre</th>
+                <th>Departamento</th>
+                <th>Días Trabajados</th>
+                <th>Total Horas</th>
+                <th>Promedio Diario</th>
+                <th>Primera Fecha</th>
+                <th>Última Fecha</th>
+            `;
+            
+            tbody.innerHTML = employees.map(emp => {
+                const avgHours = (emp.total_hours_period / emp.days_worked).toFixed(1);
+                const firstDate = emp.dates[0];
+                const lastDate = emp.dates[emp.dates.length - 1];
+                
+                return `
+                    <tr>
+                        <td><strong>${emp.employee_name}</strong></td>
+                        <td>${emp.department}</td>
+                        <td>${emp.days_worked}</td>
+                        <td>${emp.total_hours_period.toFixed(1)}h</td>
+                        <td>${avgHours}h</td>
+                        <td>${formatDateDisplay(firstDate)}</td>
+                        <td>${formatDateDisplay(lastDate)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter movements in table
+        function filterMovements(filter, button) {
+            currentFilter = filter;
+            
+            // Update active button if provided
+            if (button) {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+            }
+            
+            // Filter table rows
+            const rows = document.querySelectorAll('#movementsBody tr');
+            rows.forEach(row => {
+                const status = row.dataset.status;
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else if (filter === 'inside' && status === 'EN OBRA') {
+                    row.style.display = '';
+                } else if (filter === 'completed' && status === 'COMPLETADO') {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Toggle card expansion
+        function toggleCard(card) {
+            card.classList.toggle('expanded');
+        }
+
+        // Format date for display
+        function formatDateDisplay(dateStr) {
+            const date = new Date(dateStr + 'T12:00:00');
+            return date.toLocaleDateString('es-GT', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        // Download report
+        function downloadReport() {
+            const date = document.getElementById('searchDate').value || new Date().toISOString().split('T')[0];
+            // This would download the Excel file generated by your Python script
+            window.location.href = `control_obra_${date.replace(/-/g, '')}.xlsx`;
+        }
+
+        // Generate demo data if no real data available
+        function generateDemoData() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            comprehensiveData = {
+                generated_at: new Date().toISOString(),
+                all_employees: [
+                    {id: 1, name: 'Obidio Lorenzana Tecun', department: 'Obra'},
+                    {id: 2, name: 'Reyes Modesto Cumar López', department: 'Obra'},
+                    {id: 3, name: 'Gerber Samuel Gomez Antuche', department: 'Obra'},
+                    {id: 4, name: 'Victor Hugo Oracio Lemus Perez', department: 'Obra'},
+                    {id: 5, name: 'Carlos Alexander Cruz Zelada', department: 'Obra'},
+                    {id: 6, name: 'Benedicto Leonel Garcia Avendaño', department: 'Obra'},
+                    {id: 7, name: 'Linda Noemi Osoy', department: 'Operativo'},
+                    {id: 8, name: 'Diego Sosof Ramirez', department: 'Obra'},
+                    {id: 9, name: 'Elmer Demetrio Ramirez Pineda', department: 'Obra'},
+                    {id: 10, name: 'Baltazar Méndez Velásquez', department: 'Obra'},
+                    {id: 11, name: 'Julio Cesar Chavez Samayoa', department: 'Obra'},
+                    {id: 12, name: 'Isaías Antonio Nij Rosales', department: 'Obra'},
+                    {id: 13, name: 'Gerson Alexander Monterroso Marroquín', department: 'Obra'},
+                    {id: 14, name: 'Juan Francisco López Castro', department: 'Obra'},
+                    {id: 15, name: 'Fabio Aroldo Monterroso Ovando', department: 'Seguridad Industrial'}
+                ],
+                attendance_by_date: {}
+            };
+            
+            // Generate demo data for today
+            comprehensiveData.attendance_by_date[today] = {
+                date: today,
+                total_employees: 4,
+                currently_inside: 2,
+                employees: [
+                    {
+                        employee_id: 9,
+                        employee_name: 'Elmer Demetrio Ramirez Pineda',
+                        department: 'Obra',
+                        clock_records: [
+                            {type: 'entry', time: '06:43'}
+                        ],
+                        total_hours: 9.1,
+                        lunch_duration: 0,
+                        effective_hours: 9.1,
+                        is_currently_inside: true,
+                        first_entry: '06:43'
+                    },
+                    {
+                        employee_id: 14,
+                        employee_name: 'Juan Francisco López Castro',
+                        department: 'Obra',
+                        clock_records: [
+                            {type: 'entry', time: '07:06'}
+                        ],
+                        total_hours: 8.7,
+                        lunch_duration: 0,
+                        effective_hours: 8.7,
+                        is_currently_inside: true,
+                        first_entry: '07:06'
+                    }
+                ]
+            };
+            
+            // Initialize with demo data
+            initializeEmployees();
+            displayDataForDate(today);
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            const searchDate = document.getElementById('searchDate').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate && !endDate && searchDate) {
+                // Only refresh if viewing single date (not range)
+                loadComprehensiveData();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

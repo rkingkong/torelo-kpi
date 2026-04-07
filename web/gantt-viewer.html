@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torelo - MS Project Gantt Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+        
+        /* Loading Screen */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .loading-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        /* Error Screen */
+        .error-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f5f5f5;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .error-content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .error-icon {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .retry-button {
+            padding: 12px 30px;
+            background: #5b21b6;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .retry-button:hover {
+            background: #4c1d95;
+            transform: translateY(-2px);
+        }
+        
+        /* Main Container */
+        .container {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            background: white;
+        }
+        
+        /* Header */
+        .header {
+            height: 50px;
+            background: linear-gradient(to bottom, #5b21b6, #4c1d95);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-info {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .header-button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .header-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .back-button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .back-button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Task List Panel */
+        .task-panel {
+            width: 750px;
+            min-width: 400px;
+            max-width: 85%;
+            overflow-y: scroll;
+            overflow-x: auto;
+            background: #fafafa;
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        /* Splitter between panels */
+        .panel-splitter {
+            width: 5px;
+            background: #ddd;
+            cursor: col-resize;
+            position: relative;
+            transition: background 0.2s;
+        }
+        
+        .panel-splitter:hover {
+            background: #bbb;
+        }
+        
+        .panel-splitter:active {
+            background: #999;
+        }
+        
+        .task-header {
+            display: flex;
+            background: #e0e0e0;
+            border-bottom: 2px solid #ccc;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            height: 62px;
+        }
+        
+        .task-header > div {
+            padding: 10px;
+            border-right: 1px solid #ccc;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Column resizers */
+        .column-resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            cursor: col-resize;
+            z-index: 11;
+        }
+        
+        .column-resizer:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .column-resizer.resizing {
+            background: rgba(0,0,0,0.2);
+        }
+        
+        /* Column widths */
+        .col-task-name { width: 250px; justify-content: flex-start; min-width: 100px; }
+        .col-duration { width: 50px; min-width: 40px; }
+        .col-start { width: 85px; min-width: 70px; }
+        .col-end { width: 85px; min-width: 70px; }
+        .col-status { width: 100px; min-width: 60px; }
+        .col-assigned { width: 100px; min-width: 60px; }
+        .col-po-amount { width: 110px; min-width: 80px; }
+        
+        .task-row {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            height: 28px;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .task-row:hover { background: #e8f4f8; }
+        .task-row.has-url { cursor: pointer; }
+        .task-row.has-url:hover .task-name { text-decoration: underline; color: #5b21b6; }
+        .task-row.project.has-url:hover .task-name { color: white; text-decoration: underline; }
+        .task-row.project { background: #4472C4; color: white; font-weight: bold; font-size: 12px; }
+        .task-row.project:hover { background: #5582D4; }
+        .task-row.collapsed { display: none; }
+        
+        .task-row > div {
+            padding: 0 8px;
+            border-right: 1px solid #e0e0e0;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 28px;
+            height: 28px;
+        }
+        
+        .task-name { display: flex; align-items: center; }
+        .task-row.level-1 .task-name { padding-left: 25px !important; }
+        .task-row.level-2 .task-name { padding-left: 45px !important; }
+        
+        .expand-icon {
+            margin-right: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .expand-icon.collapsed { transform: rotate(-90deg); }
+        .task-duration { text-align: center; }
+        .task-start { text-align: center; }
+        .task-end { text-align: center; }
+        .task-status { text-align: center; font-weight: 600; }
+        .task-assigned { text-align: center; font-style: italic; }
+        .task-po-amount { text-align: right; font-weight: bold; color: #008000; }
+        
+        .task-row.project .task-po-amount,
+        .task-row.project .task-status,
+        .task-row.project .task-assigned { color: white; }
+        
+        .status-in-progress { color: #f39c12; }
+        .status-completed { color: #27ae60; }
+        .status-pending { color: #e74c3c; }
+        .status-on-hold { color: #95a5a6; }
+        
+        /* Gantt Chart Panel */
+        .gantt-panel { flex: 1; overflow: auto; position: relative; }
+        .gantt-container { position: relative; min-width: 1000px; }
+        
+        .timeline-header {
+            position: sticky;
+            top: 0;
+            background: #e0e0e0;
+            border-bottom: 2px solid #ccc;
+            z-index: 10;
+            height: 62px;
+        }
+        
+        .month-row { height: 30px; display: flex; border-bottom: 1px solid #ccc; }
+        .month-cell { border-right: 1px solid #ccc; text-align: center; font-weight: bold; font-size: 12px; line-height: 30px; background: #f0f0f0; }
+        .day-row { height: 30px; display: flex; }
+        .day-cell { border-right: 1px solid #ddd; text-align: center; font-size: 10px; line-height: 30px; width: 30px; flex-shrink: 0; }
+        .day-cell.weekend { background: #f5f5f5; }
+        .day-cell.today { background: #ffe6e6; font-weight: bold; }
+        
+        .gantt-rows { position: relative; }
+        .gantt-row { height: 28px; border-bottom: 1px solid #e0e0e0; position: relative; }
+        .gantt-row.project { background: rgba(68, 114, 196, 0.1); }
+        .gantt-row.collapsed { display: none; }
+        
+        .gantt-bar {
+            position: absolute;
+            height: 19px;
+            top: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            font-size: 10px;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .gantt-bar:hover { opacity: 0.8; z-index: 3; }
+        .gantt-bar.project { background: #4472C4; height: 21px; top: 3px; font-weight: bold; }
+        .gantt-bar.task { background: #70AD47; }
+        .gantt-bar.subtask { background: #FFC000; height: 16px; top: 5px; }
+        .gantt-bar.overdue { background: #e74c3c; }
+        .gantt-bar.due-soon { background: #f39c12; }
+        .gantt-bar.no-dates { background: #95a5a6; border: 2px dashed #7f8c8d; }
+        
+        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #e74c3c; z-index: 5; pointer-events: none; }
+        .today-label { position: absolute; top: -20px; left: -20px; background: #e74c3c; color: white; padding: 2px 8px; font-size: 10px; border-radius: 3px; white-space: nowrap; }
+        
+        .grid-lines { position: absolute; top: 0; bottom: 0; left: 0; right: 0; pointer-events: none; }
+        .grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #f0f0f0; }
+        .grid-line.week { background: #e0e0e0; }
+        .grid-line.month { background: #ccc; }
+        
+        .dependency-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; }
+        .dependency-line { stroke: #666; stroke-width: 2; fill: none; marker-end: url(#arrowhead); opacity: 0.6; }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 350px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .tooltip-title { font-weight: bold; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; }
+        .tooltip-row { margin: 4px 0; display: flex; justify-content: space-between; gap: 10px; }
+        .tooltip-label { font-weight: 600; color: #ccc; }
+        
+        /* Legend */
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 12px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .legend.collapsed { bottom: 20px; right: 20px; }
+        .legend-header { padding: 10px 15px; background: #5b21b6; color: white; border-radius: 8px 8px 0 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-weight: bold; }
+        .legend-toggle { font-size: 14px; transition: transform 0.3s; }
+        .legend.collapsed .legend-toggle { transform: rotate(180deg); }
+        .legend-content { padding: 15px; max-height: 400px; overflow-y: auto; transition: all 0.3s ease; }
+        .legend.collapsed .legend-content { max-height: 0; padding: 0 15px; overflow: hidden; }
+        .legend.collapsed .legend-header { border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; margin: 5px 0; }
+        .legend-color { width: 20px; height: 14px; margin-right: 8px; border-radius: 3px; }
+        
+        /* Print Modal - IMPROVED */
+        .print-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .print-modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .print-modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            font-size: 20px;
+        }
+        
+        .print-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .print-section h4 {
+            margin-bottom: 12px;
+            color: #5b21b6;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .date-inputs {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .date-input-group {
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        .date-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .date-input-group input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .quick-range-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-range-btn {
+            padding: 5px 10px;
+            background: #e8e8e8;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .quick-range-btn:hover, .quick-range-btn.active {
+            background: #5b21b6;
+            color: white;
+        }
+        
+        /* Project Selection */
+        .project-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .project-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .project-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .project-item:last-child {
+            border-bottom: none;
+        }
+        
+        .project-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .project-item label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .project-item .task-count {
+            font-size: 11px;
+            color: #888;
+            background: #eee;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .select-all-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .select-all-row button {
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .select-all-row button:hover {
+            background: #ccc;
+        }
+        
+        /* Print Options */
+        .print-option {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+        
+        .print-option label {
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .print-option select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 160px;
+        }
+        
+        .print-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .print-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .print-btn-primary {
+            background: linear-gradient(135deg, #5b21b6, #7c3aed);
+            color: white;
+        }
+        
+        .print-btn-primary:hover {
+            background: linear-gradient(135deg, #4c1d95, #6d28d9);
+            transform: translateY(-1px);
+        }
+        
+        .print-btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .print-btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .print-progress {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 8px;
+        }
+        
+        .print-progress p {
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .print-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .print-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #5b21b6, #7c3aed);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .print-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        .resize-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        @media print {
+            .header-buttons, .legend, .tooltip, .resize-info { display: none !important; }
+            .task-row.collapsed, .gantt-row.collapsed { display: flex !important; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-container" id="loadingContainer">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Cargando Diagrama de Gantt</div>
+            <div class="loading-subtext">Procesando archivo de proyectos...</div>
+        </div>
+    </div>
+    
+    <!-- Error Screen -->
+    <div class="error-container" id="errorContainer">
+        <div class="error-content">
+            <div class="error-icon">⚠️</div>
+            <h2>Error al cargar el archivo</h2>
+            <p class="error-message" id="errorMessage">No se pudo encontrar el archivo de proyectos.</p>
+            <button class="retry-button" onclick="location.reload()">Reintentar</button>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container" id="container">
+        <div class="header">
+            <h1>
+                <span>📊</span>
+                <span>Diagrama de Gantt - Proyectos Abiertos</span>
+            </h1>
+            <div class="header-info" id="fileInfo"></div>
+            <div class="header-buttons">
+                <button class="header-button" onclick="expandAll()">Expandir Todo</button>
+                <button class="header-button" onclick="collapseAll()">Colapsar Todo</button>
+                <button class="header-button" onclick="resetView()">Vista Inicial</button>
+                <button class="header-button" onclick="resetColumnWidths()" style="background: rgba(255,200,0,0.3);">↔️ Restablecer</button>
+                <button class="header-button" onclick="showPrintModal()" style="background: rgba(0,255,0,0.3);">📑 Exportar PDF</button>
+                <button class="header-button" onclick="showHelp()" style="background: rgba(255,255,255,0.3);">❓ Ayuda</button>
+                <button class="header-button back-button" onclick="goBack()">← Volver</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="task-panel" id="taskPanel">
+                <div class="task-header">
+                    <div class="col-task-name">Nombre de Tarea<div class="column-resizer" data-column="task-name"></div></div>
+                    <div class="col-duration">Días<div class="column-resizer" data-column="duration"></div></div>
+                    <div class="col-start">Inicio<div class="column-resizer" data-column="start"></div></div>
+                    <div class="col-end">Fin<div class="column-resizer" data-column="end"></div></div>
+                    <div class="col-status">Estado<div class="column-resizer" data-column="status"></div></div>
+                    <div class="col-assigned">Asignado a<div class="column-resizer" data-column="assigned"></div></div>
+                    <div class="col-po-amount">Pendiente (Q)<div class="column-resizer" data-column="po-amount"></div></div>
+                </div>
+                <div id="taskList"></div>
+            </div>
+            
+            <div class="panel-splitter" id="panelSplitter"></div>
+            
+            <div class="gantt-panel" id="ganttPanel">
+                <div class="gantt-container" id="ganttContainer">
+                    <div class="timeline-header" id="timelineHeader"></div>
+                    <div class="gantt-rows" id="ganttRows">
+                        <svg class="dependency-container" id="dependencyContainer">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#666">
+                                    <polygon points="0 0, 10 3.5, 0 7" />
+                                </marker>
+                            </defs>
+                        </svg>
+                        <div class="grid-lines" id="gridLines"></div>
+                        <div class="today-line" id="todayLine"><div class="today-label">HOY</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend" id="legend">
+            <div class="legend-header" onclick="toggleLegend()">
+                <span>Leyenda</span>
+                <span class="legend-toggle">▼</span>
+            </div>
+            <div class="legend-content">
+                <div class="legend-item"><div class="legend-color" style="background: #4472C4;"></div><span>Proyecto</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #70AD47;"></div><span>Tarea</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #FFC000;"></div><span>Subtarea</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div><span>Vencida</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #f39c12;"></div><span>Próxima a vencer</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    <div class="resize-info" id="resizeInfo"></div>
+    
+    <!-- IMPROVED Print Modal -->
+    <div class="print-modal" id="printModal">
+        <div class="print-modal-content">
+            <h2>📑 Exportar Diagrama de Gantt a PDF</h2>
+            
+            <!-- Project Selection Section -->
+            <div class="print-section">
+                <h4>📁 Seleccionar Proyectos</h4>
+                <div class="select-all-row">
+                    <span id="selectedCount">0 proyectos seleccionados</span>
+                    <div>
+                        <button onclick="selectAllProjects()">Seleccionar Todos</button>
+                        <button onclick="deselectAllProjects()">Deseleccionar Todos</button>
+                    </div>
+                </div>
+                <div class="project-list" id="projectList">
+                    <!-- Projects will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Date Range Section -->
+            <div class="print-section">
+                <h4>📅 Rango de Fechas</h4>
+                <div class="date-inputs">
+                    <div class="date-input-group">
+                        <label for="exportStartDate">Fecha Inicio:</label>
+                        <input type="date" id="exportStartDate">
+                    </div>
+                    <div class="date-input-group">
+                        <label for="exportEndDate">Fecha Fin:</label>
+                        <input type="date" id="exportEndDate">
+                    </div>
+                </div>
+                <div class="quick-range-buttons">
+                    <button class="quick-range-btn" onclick="setQuickRange('month')">Este Mes</button>
+                    <button class="quick-range-btn" onclick="setQuickRange('quarter')">Trimestre</button>
+                    <button class="quick-range-btn" onclick="setQuickRange('3months')">3 Meses</button>
+                    <button class="quick-range-btn" onclick="setQuickRange('6months')">6 Meses</button>
+                    <button class="quick-range-btn" onclick="setQuickRange('year')">1 Año</button>
+                    <button class="quick-range-btn" onclick="setQuickRange('all')">Todo</button>
+                </div>
+            </div>
+            
+            <!-- Format Options -->
+            <div class="print-section">
+                <h4>⚙️ Opciones de Formato</h4>
+                <div class="print-option">
+                    <label for="printFormat">Tamaño de papel:</label>
+                    <select id="printFormat">
+                        <option value="a4">A4 Horizontal</option>
+                        <option value="a3" selected>A3 Horizontal (Recomendado)</option>
+                        <option value="tabloid">Tabloide (11x17")</option>
+                        <option value="legal">Legal Horizontal</option>
+                    </select>
+                </div>
+                <div class="print-option">
+                    <label for="taskListWidth">Ancho lista de tareas:</label>
+                    <select id="taskListWidth">
+                        <option value="0">Sin lista (solo Gantt)</option>
+                        <option value="70">Compacto (70mm)</option>
+                        <option value="90" selected>Normal (90mm)</option>
+                        <option value="110">Amplio (110mm)</option>
+                        <option value="130">Extra amplio (130mm)</option>
+                    </select>
+                </div>
+                <div class="print-option">
+                    <input type="checkbox" id="expandAllPDF" checked>
+                    <label for="expandAllPDF">Expandir todos los proyectos en el PDF</label>
+                </div>
+                <div class="print-option">
+                    <input type="checkbox" id="showWeekends" checked>
+                    <label for="showWeekends">Mostrar fines de semana</label>
+                </div>
+            </div>
+            
+            <div class="print-buttons">
+                <button class="print-btn print-btn-primary" onclick="generatePDF()">
+                    📑 Generar PDF
+                </button>
+                <button class="print-btn print-btn-secondary" onclick="closePrintModal()">
+                    Cancelar
+                </button>
+            </div>
+            
+            <div class="print-progress" id="printProgress">
+                <p id="progressText">Preparando documento...</p>
+                <div class="print-progress-bar">
+                    <div class="print-progress-fill" id="progressFill"></div>
+                </div>
+                <div class="print-status" id="progressStatus"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let ganttData = [];
+        let allProjects = [];
+        let minDate, maxDate, originalMinDate, originalMaxDate;
+        let dayWidth = 30;
+        const rowHeight = 28;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let projectStates = {};
+        let legendCollapsed = false;
+        
+        let columnWidths = {
+            'task-name': 250, 'duration': 50, 'start': 85,
+            'end': 85, 'status': 100, 'assigned': 100, 'po-amount': 110
+        };
+        const defaultColumnWidths = {...columnWidths};
+        
+        let taskPanelWidth = 750;
+        const minPanelWidth = 400;
+        const maxPanelWidthPercent = 85;
+        
+        function toggleLegend() {
+            const legend = document.getElementById('legend');
+            legendCollapsed = !legendCollapsed;
+            legend.classList.toggle('collapsed', legendCollapsed);
+        }
+        
+        // ==================== PDF EXPORT ====================
+        
+        function showPrintModal() {
+            document.getElementById('printModal').style.display = 'flex';
+            populateProjectList();
+            initializeDatePickers();
+        }
+        
+        function closePrintModal() {
+            document.getElementById('printModal').style.display = 'none';
+            document.getElementById('printProgress').style.display = 'none';
+        }
+        
+        function populateProjectList() {
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = '';
+            
+            allProjects = ganttData.filter(t => t.type === 'Project');
+            
+            allProjects.forEach((project, idx) => {
+                const taskCount = ganttData.filter(t => t.projectId === project.id && t.id !== project.id).length;
+                
+                const div = document.createElement('div');
+                div.className = 'project-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="proj_${idx}" value="${project.id}" checked onchange="updateSelectedCount()">
+                    <label for="proj_${idx}">${project.taskName}</label>
+                    <span class="task-count">${taskCount} tareas</span>
+                `;
+                projectList.appendChild(div);
+            });
+            
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('#projectList input:checked').length;
+            document.getElementById('selectedCount').textContent = `${checked} proyecto${checked !== 1 ? 's' : ''} seleccionado${checked !== 1 ? 's' : ''}`;
+        }
+        
+        function selectAllProjects() {
+            document.querySelectorAll('#projectList input').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+        
+        function deselectAllProjects() {
+            document.querySelectorAll('#projectList input').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+        
+        function getSelectedProjectIds() {
+            return Array.from(document.querySelectorAll('#projectList input:checked')).map(cb => cb.value);
+        }
+        
+        function initializeDatePickers() {
+            const startInput = document.getElementById('exportStartDate');
+            const endInput = document.getElementById('exportEndDate');
+            
+            // Default to showing from today minus 1 week to 3 months ahead
+            const defaultStart = new Date(today);
+            defaultStart.setDate(defaultStart.getDate() - 7);
+            
+            const defaultEnd = new Date(today);
+            defaultEnd.setMonth(defaultEnd.getMonth() + 3);
+            
+            startInput.value = formatDateForInput(defaultStart);
+            endInput.value = formatDateForInput(defaultEnd);
+        }
+        
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        function setQuickRange(range) {
+            const startInput = document.getElementById('exportStartDate');
+            const endInput = document.getElementById('exportEndDate');
+            const now = new Date();
+            let startDate = new Date(now);
+            let endDate = new Date(now);
+            
+            document.querySelectorAll('.quick-range-btn').forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            switch(range) {
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'quarter':
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    endDate = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+                    break;
+                case '3months':
+                    startDate.setDate(1);
+                    endDate.setMonth(endDate.getMonth() + 3);
+                    endDate.setDate(0);
+                    break;
+                case '6months':
+                    startDate.setDate(1);
+                    endDate.setMonth(endDate.getMonth() + 6);
+                    endDate.setDate(0);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), 11, 31);
+                    break;
+                case 'all':
+                    startDate = new Date(originalMinDate);
+                    endDate = new Date(originalMaxDate);
+                    break;
+            }
+            
+            startInput.value = formatDateForInput(startDate);
+            endInput.value = formatDateForInput(endDate);
+        }
+        
+        function updateProgress(percent, text, status = '') {
+            const progressDiv = document.getElementById('printProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressStatus = document.getElementById('progressStatus');
+            
+            progressDiv.style.display = 'block';
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+            progressStatus.textContent = status;
+        }
+        
+        // Sanitize text for PDF - remove problematic characters
+        function sanitizeTextForPDF(text) {
+            if (!text) return '';
+            // Decode HTML entities
+            let decoded = text
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&nbsp;/g, ' ');
+            
+            // Clean up subtask prefix - replace "  !' " with cleaner format
+            decoded = decoded.replace(/^\s*!'\s*/g, '→ ');
+            decoded = decoded.replace(/→\s*→/g, '→'); // Remove double arrows
+            
+            // Remove any remaining problematic characters
+            decoded = decoded.replace(/[^\x20-\x7E\xA0-\xFF]/g, function(char) {
+                // Keep common Spanish characters
+                const spanishChars = 'áéíóúñÁÉÍÓÚÑüÜ¿¡';
+                if (spanishChars.includes(char)) return char;
+                return '';
+            });
+            
+            return decoded.trim();
+        }
+        
+        async function generatePDF() {
+            try {
+                const selectedProjects = getSelectedProjectIds();
+                if (selectedProjects.length === 0) {
+                    alert('Por favor seleccione al menos un proyecto para exportar.');
+                    return;
+                }
+                
+                updateProgress(5, 'Cargando librería de PDF...', '');
+                
+                await loadJsPDF();
+                
+                updateProgress(15, 'Preparando datos...', `${selectedProjects.length} proyectos seleccionados`);
+                
+                const exportStartDate = new Date(document.getElementById('exportStartDate').value);
+                const exportEndDate = new Date(document.getElementById('exportEndDate').value);
+                exportStartDate.setHours(0, 0, 0, 0);
+                exportEndDate.setHours(23, 59, 59, 999);
+                
+                const format = document.getElementById('printFormat').value;
+                const taskListWidth = parseInt(document.getElementById('taskListWidth').value);
+                const expandAll = document.getElementById('expandAllPDF').checked;
+                const showWeekends = document.getElementById('showWeekends').checked;
+                
+                // Filter tasks by selected projects
+                let tasksToExport = ganttData.filter(task => {
+                    if (task.type === 'Project') {
+                        return selectedProjects.includes(task.id);
+                    }
+                    return selectedProjects.includes(task.projectId);
+                });
+                
+                // If not expanding, only show project rows
+                if (!expandAll) {
+                    tasksToExport = tasksToExport.filter(t => t.type === 'Project');
+                }
+                
+                // Filter by date range - include tasks that overlap with the range OR have no dates
+                tasksToExport = tasksToExport.filter(task => {
+                    if (!task.startDate && !task.endDate) return true; // Keep tasks without dates
+                    const taskStart = task.startDate || task.endDate;
+                    const taskEnd = task.endDate || task.startDate;
+                    // Check if task overlaps with export range
+                    return taskEnd >= exportStartDate && taskStart <= exportEndDate;
+                });
+                
+                console.log('Tasks to export:', tasksToExport.length);
+                console.log('Date range:', exportStartDate, 'to', exportEndDate);
+                
+                updateProgress(25, 'Creando PDF...', `${tasksToExport.length} tareas a exportar`);
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                
+                // Page sizes in mm
+                const pageSizes = {
+                    'a4': { width: 297, height: 210 },
+                    'a3': { width: 420, height: 297 },
+                    'tabloid': { width: 432, height: 279 },
+                    'legal': { width: 356, height: 216 }
+                };
+                
+                const pageSize = pageSizes[format] || pageSizes.a3;
+                
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [pageSize.width, pageSize.height]
+                });
+                
+                // Layout constants
+                const margin = 5;
+                const headerHeight = 18;
+                const timelineHeight = 14;
+                const rowHeight = 5;
+                const contentWidth = pageSize.width - (margin * 2);
+                
+                // Calculate column widths based on taskListWidth setting
+                // Columns: Tarea | Inicio | Fin | Estado
+                const colWidths = {
+                    start: 13,
+                    end: 13,
+                    status: 18
+                };
+                colWidths.taskName = Math.max(30, taskListWidth - colWidths.start - colWidths.end - colWidths.status);
+                
+                // Actual task list width is sum of all columns
+                const actualTaskListWidth = taskListWidth > 0 ? 
+                    (colWidths.taskName + colWidths.start + colWidths.end + colWidths.status) : 0;
+                
+                const ganttStartX = margin + actualTaskListWidth;
+                const ganttWidth = contentWidth - actualTaskListWidth;
+                
+                // Calculate days
+                const totalDays = Math.ceil((exportEndDate - exportStartDate) / (1000 * 60 * 60 * 24));
+                const pixelsPerDay = ganttWidth / totalDays;
+                
+                updateProgress(35, 'Dibujando encabezado...', '');
+                
+                // Draw header with integrated legend
+                pdf.setFillColor(91, 33, 182);
+                pdf.rect(0, 0, pageSize.width, headerHeight, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Diagrama de Gantt - Torelo', margin, 8);
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'normal');
+                const dateRange = `${formatDateDisplay(exportStartDate)} - ${formatDateDisplay(exportEndDate)}`;
+                pdf.text(dateRange, margin, 14);
+                
+                // Draw legend in header (right side)
+                const legendItems = [
+                    { color: [68, 114, 196], label: 'Proyecto' },
+                    { color: [112, 173, 71], label: 'Tarea' },
+                    { color: [255, 192, 0], label: 'Subtarea' },
+                    { color: [231, 76, 60], label: 'Vencida' },
+                    { color: [243, 156, 18], label: 'Próxima' }
+                ];
+                
+                let legendX = pageSize.width - margin - 115;
+                pdf.setFontSize(6);
+                legendItems.forEach(item => {
+                    pdf.setFillColor(...item.color);
+                    pdf.roundedRect(legendX, 5, 5, 3, 0.5, 0.5, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text(item.label, legendX + 6, 7.5);
+                    legendX += 23;
+                });
+                
+                // Task count info
+                pdf.setFontSize(7);
+                pdf.text(`${tasksToExport.length} tareas`, pageSize.width - margin - 25, 14);
+                
+                let yPos = headerHeight + 2;
+                
+                updateProgress(45, 'Dibujando línea de tiempo...', '');
+                
+                // Draw task list header background first (if enabled)
+                if (actualTaskListWidth > 0) {
+                    pdf.setFillColor(220, 220, 220);
+                    pdf.rect(margin, yPos, actualTaskListWidth, timelineHeight, 'F');
+                    pdf.setDrawColor(180, 180, 180);
+                    pdf.rect(margin, yPos, actualTaskListWidth, timelineHeight, 'S');
+                }
+                
+                // Draw timeline header (Gantt area)
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(ganttStartX, yPos, ganttWidth, timelineHeight, 'F');
+                pdf.setDrawColor(180, 180, 180);
+                pdf.rect(ganttStartX, yPos, ganttWidth, timelineHeight, 'S');
+                
+                // Draw months
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'bold');
+                
+                let currentDate = new Date(exportStartDate);
+                let lastMonth = -1;
+                let monthStartX = ganttStartX;
+                
+                while (currentDate <= exportEndDate) {
+                    const dayOffset = Math.floor((currentDate - exportStartDate) / (1000 * 60 * 60 * 24));
+                    const xPos = ganttStartX + (dayOffset * pixelsPerDay);
+                    
+                    if (currentDate.getMonth() !== lastMonth) {
+                        if (lastMonth !== -1) {
+                            // Draw month separator
+                            pdf.setDrawColor(180, 180, 180);
+                            pdf.line(xPos, yPos, xPos, yPos + timelineHeight);
+                        }
+                        
+                        // Draw month name
+                        const monthName = getMonthName(currentDate.getMonth()) + ' ' + currentDate.getFullYear();
+                        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+                        const monthEndOffset = Math.min(
+                            Math.floor((nextMonth - exportStartDate) / (1000 * 60 * 60 * 24)),
+                            totalDays
+                        );
+                        const monthWidth = (monthEndOffset - dayOffset) * pixelsPerDay;
+                        
+                        if (monthWidth > 20) {
+                            pdf.text(monthName, xPos + 2, yPos + 5);
+                        }
+                        
+                        monthStartX = xPos;
+                        lastMonth = currentDate.getMonth();
+                    }
+                    
+                    // Draw day numbers (every 5 days or on 1st)
+                    if (currentDate.getDate() === 1 || currentDate.getDate() % 5 === 0) {
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(6);
+                        const dayStr = currentDate.getDate().toString();
+                        pdf.text(dayStr, xPos + 1, yPos + 11);
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                yPos += timelineHeight + 1;
+                
+                // Column X positions (left to right)
+                const taskNameX = margin;
+                const startColX = margin + colWidths.taskName;
+                const endColX = startColX + colWidths.start;
+                const statusColX = endColX + colWidths.end;
+                
+                // Draw task list header if enabled - with columns
+                if (actualTaskListWidth > 0) {
+                    pdf.setFillColor(200, 200, 200);
+                    pdf.rect(margin, yPos, actualTaskListWidth, rowHeight + 1, 'F');
+                    pdf.setDrawColor(150, 150, 150);
+                    pdf.rect(margin, yPos, actualTaskListWidth, rowHeight + 1, 'S');
+                    
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(5);
+                    pdf.setFont('helvetica', 'bold');
+                    
+                    // Draw column headers - left justified
+                    pdf.text('Tarea', taskNameX + 1, yPos + 3.5);
+                    pdf.text('Inicio', startColX + 1, yPos + 3.5);
+                    pdf.text('Fin', endColX + 1, yPos + 3.5);
+                    pdf.text('Estado', statusColX + 1, yPos + 3.5);
+                    
+                    // Draw column separator lines
+                    pdf.setDrawColor(150, 150, 150);
+                    pdf.setLineWidth(0.2);
+                    pdf.line(startColX, yPos, startColX, yPos + rowHeight + 1);
+                    pdf.line(endColX, yPos, endColX, yPos + rowHeight + 1);
+                    pdf.line(statusColX, yPos, statusColX, yPos + rowHeight + 1);
+                }
+                
+                // Gantt column header
+                pdf.setFillColor(200, 200, 200);
+                pdf.rect(ganttStartX, yPos, ganttWidth, rowHeight + 1, 'F');
+                pdf.setDrawColor(150, 150, 150);
+                pdf.rect(ganttStartX, yPos, ganttWidth, rowHeight + 1, 'S');
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(5);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Diagrama de Gantt', ganttStartX + 2, yPos + 3.5);
+                
+                yPos += rowHeight + 2;
+                
+                // Store the Y position where tasks start (for grid lines)
+                const tasksStartY = yPos;
+                
+                // Calculate total height for grid lines
+                const estimatedTasksHeight = tasksToExport.length * rowHeight;
+                
+                // Draw vertical grid lines in Gantt area FIRST (so they're behind bars)
+                pdf.setLineWidth(0.1);
+                let gridDate = new Date(exportStartDate);
+                while (gridDate <= exportEndDate) {
+                    const dayOffset = (gridDate - exportStartDate) / (1000 * 60 * 60 * 24);
+                    const gridX = ganttStartX + (dayOffset * pixelsPerDay);
+                    
+                    // Draw line on Mondays (week start)
+                    if (gridDate.getDay() === 1) {
+                        pdf.setDrawColor(230, 230, 230);
+                        pdf.line(gridX, yPos, gridX, yPos + estimatedTasksHeight);
+                    }
+                    // Draw thicker line on 1st of month
+                    if (gridDate.getDate() === 1) {
+                        pdf.setDrawColor(180, 180, 180);
+                        pdf.setLineWidth(0.3);
+                        pdf.line(gridX, yPos, gridX, yPos + estimatedTasksHeight);
+                        pdf.setLineWidth(0.1);
+                    }
+                    
+                    gridDate.setDate(gridDate.getDate() + 1);
+                }
+                
+                updateProgress(55, 'Dibujando tareas...', `0 / ${tasksToExport.length}`);
+                
+                // Draw tasks
+                let pageNum = 1;
+                const maxY = pageSize.height - margin - 8;
+                
+                for (let i = 0; i < tasksToExport.length; i++) {
+                    const task = tasksToExport[i];
+                    
+                    // Update progress every 10 tasks
+                    if (i % 10 === 0) {
+                        updateProgress(55 + (i / tasksToExport.length * 35), 'Dibujando tareas...', `${i} / ${tasksToExport.length}`);
+                    }
+                    
+                    // Check if we need a new page
+                    if (yPos > maxY) {
+                        pdf.addPage([pageSize.width, pageSize.height], 'landscape');
+                        pageNum++;
+                        yPos = margin;
+                        
+                        // Draw page header
+                        pdf.setFillColor(91, 33, 182);
+                        pdf.rect(0, 0, pageSize.width, 8, 'F');
+                        pdf.setTextColor(255, 255, 255);
+                        pdf.setFontSize(9);
+                        pdf.text(`Página ${pageNum}`, pageSize.width - margin - 15, 5);
+                        yPos = 10;
+                    }
+                    
+                    // Row background - full width
+                    if (task.type === 'Project') {
+                        pdf.setFillColor(68, 114, 196);
+                        pdf.rect(margin, yPos, contentWidth, rowHeight, 'F');
+                        pdf.setTextColor(255, 255, 255);
+                    } else {
+                        if (i % 2 === 0) {
+                            pdf.setFillColor(250, 250, 250);
+                        } else {
+                            pdf.setFillColor(255, 255, 255);
+                        }
+                        pdf.rect(margin, yPos, contentWidth, rowHeight, 'F');
+                        pdf.setTextColor(51, 51, 51);
+                    }
+                    
+                    // Draw horizontal line below each row
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.setLineWidth(0.1);
+                    pdf.line(margin, yPos + rowHeight, margin + contentWidth, yPos + rowHeight);
+                    
+                    // Draw task list columns if enabled
+                    if (actualTaskListWidth > 0) {
+                        // Task name - left justified with indent
+                        pdf.setFontSize(4.5);
+                        pdf.setFont('helvetica', task.type === 'Project' ? 'bold' : 'normal');
+                        
+                        let taskName = sanitizeTextForPDF(task.taskName);
+                        const indent = task.level === 1 ? 2 : task.level === 2 ? 4 : 0;
+                        const maxChars = Math.floor((colWidths.taskName - indent - 2) / 1.4);
+                        
+                        if (taskName.length > maxChars && maxChars > 5) {
+                            taskName = taskName.substring(0, maxChars - 2) + '...';
+                        }
+                        
+                        pdf.text(taskName, taskNameX + 1 + indent, yPos + 3.5);
+                        
+                        // Start date
+                        pdf.setFontSize(4);
+                        if (task.startDate) {
+                            pdf.text(formatDateShort(task.startDate), startColX + 0.5, yPos + 3.5);
+                        }
+                        
+                        // End date
+                        if (task.endDate) {
+                            pdf.text(formatDateShort(task.endDate), endColX + 0.5, yPos + 3.5);
+                        }
+                        
+                        // Status - with color coding
+                        if (task.status) {
+                            const statusText = sanitizeTextForPDF(task.status);
+                            const maxStatusChars = Math.floor((colWidths.status - 2) / 1.3);
+                            const shortStatus = statusText.length > maxStatusChars ? 
+                                statusText.substring(0, maxStatusChars - 1) + '..' : statusText;
+                            
+                            // Set status color
+                            if (task.type !== 'Project') {
+                                const statusLower = task.status.toLowerCase();
+                                if (statusLower.includes('progress') || statusLower.includes('proceso')) {
+                                    pdf.setTextColor(243, 156, 18); // Orange
+                                } else if (statusLower.includes('complete') || statusLower.includes('hecho') || statusLower.includes('done')) {
+                                    pdf.setTextColor(39, 174, 96); // Green
+                                } else if (statusLower.includes('pend') || statusLower.includes('espera') || statusLower.includes('planif')) {
+                                    pdf.setTextColor(149, 165, 166); // Gray for Sin Planificar
+                                } else if (statusLower.includes('bloq') || statusLower.includes('hold') || statusLower.includes('pausa')) {
+                                    pdf.setTextColor(231, 76, 60); // Red for Bloqueado
+                                }
+                            }
+                            
+                            pdf.text(shortStatus, statusColX + 0.5, yPos + 3.5);
+                            
+                            // Reset text color
+                            if (task.type === 'Project') {
+                                pdf.setTextColor(255, 255, 255);
+                            } else {
+                                pdf.setTextColor(51, 51, 51);
+                            }
+                        }
+                        
+                        // Draw vertical column separator lines
+                        const lineColor = task.type === 'Project' ? 120 : 210;
+                        pdf.setDrawColor(lineColor, lineColor, lineColor);
+                        pdf.setLineWidth(0.15);
+                        pdf.line(startColX, yPos, startColX, yPos + rowHeight);
+                        pdf.line(endColX, yPos, endColX, yPos + rowHeight);
+                        pdf.line(statusColX, yPos, statusColX, yPos + rowHeight);
+                        
+                        // Border between task list and Gantt (thicker line)
+                        pdf.setDrawColor(task.type === 'Project' ? 100 : 180, task.type === 'Project' ? 100 : 180, task.type === 'Project' ? 160 : 180);
+                        pdf.setLineWidth(0.4);
+                        pdf.line(ganttStartX, yPos, ganttStartX, yPos + rowHeight);
+                    }
+                    
+                    // Draw Gantt bar
+                    const taskStart = task.startDate;
+                    const taskEnd = task.endDate;
+                    
+                    if (taskStart || taskEnd) {
+                        // Use actual dates or estimate if only one is present
+                        const actualStart = taskStart || new Date(taskEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        const actualEnd = taskEnd || new Date(taskStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+                        
+                        // Clip to export range
+                        const barStartDate = new Date(Math.max(actualStart.getTime(), exportStartDate.getTime()));
+                        const barEndDate = new Date(Math.min(actualEnd.getTime(), exportEndDate.getTime()));
+                        
+                        // Only draw if bar is within visible range
+                        if (barStartDate <= barEndDate && barStartDate <= exportEndDate && barEndDate >= exportStartDate) {
+                            const startDays = (barStartDate - exportStartDate) / (1000 * 60 * 60 * 24);
+                            const endDays = (barEndDate - exportStartDate) / (1000 * 60 * 60 * 24) + 1;
+                            
+                            const barX = ganttStartX + (startDays * pixelsPerDay);
+                            const barWidth = Math.max((endDays - startDays) * pixelsPerDay, 3); // Minimum 3mm width
+                            const barY = yPos + 0.8;
+                            const barHeight = rowHeight - 1.6;
+                            
+                            // Set bar color based on task type and status
+                            if (task.type === 'Project') {
+                                pdf.setFillColor(68, 114, 196); // Blue for projects
+                            } else if (task.daysRemaining !== null && task.daysRemaining < 0) {
+                                pdf.setFillColor(231, 76, 60); // Red - Overdue
+                            } else if (task.daysRemaining !== null && task.daysRemaining <= 3) {
+                                pdf.setFillColor(243, 156, 18); // Orange - Due soon
+                            } else if (task.level === 2) {
+                                pdf.setFillColor(255, 192, 0); // Yellow - Subtask
+                            } else {
+                                pdf.setFillColor(112, 173, 71); // Green - Normal task
+                            }
+                            
+                            // Draw the bar
+                            pdf.roundedRect(barX, barY, barWidth, barHeight, 0.8, 0.8, 'F');
+                            
+                            // Add task name on bar if wide enough (more than 20mm)
+                            if (barWidth > 20) {
+                                pdf.setTextColor(255, 255, 255);
+                                pdf.setFontSize(4);
+                                const barText = sanitizeTextForPDF(task.taskName);
+                                const maxBarChars = Math.floor(barWidth / 1.5);
+                                const displayText = barText.length > maxBarChars ? 
+                                    barText.substring(0, maxBarChars - 2) + '..' : 
+                                    barText;
+                                pdf.text(displayText, barX + 1, barY + barHeight - 0.8);
+                            }
+                            
+                            // Debug log
+                            console.log(`Drew bar for "${task.taskName}" at x=${barX.toFixed(1)}, width=${barWidth.toFixed(1)}`);
+                        }
+                    }
+                    
+                    // Reset text color for next row
+                    pdf.setTextColor(0, 0, 0);
+                    
+                    yPos += rowHeight;
+                }
+                
+                updateProgress(92, 'Dibujando línea de hoy...', '');
+                
+                // Draw outer border around the entire content area
+                pdf.setDrawColor(150, 150, 150);
+                pdf.setLineWidth(0.3);
+                pdf.rect(margin, tasksStartY, contentWidth, yPos - tasksStartY, 'S');
+                
+                // Draw today line on current page (draw it last so it's on top)
+                const todayTime = today.getTime();
+                const startTime = exportStartDate.getTime();
+                const endTime = exportEndDate.getTime();
+                
+                if (todayTime >= startTime && todayTime <= endTime) {
+                    const todayOffset = (todayTime - startTime) / (1000 * 60 * 60 * 24);
+                    const todayX = ganttStartX + (todayOffset * pixelsPerDay);
+                    
+                    pdf.setDrawColor(231, 76, 60);
+                    pdf.setLineWidth(0.8);
+                    pdf.line(todayX, headerHeight + 2, todayX, Math.min(yPos, maxY));
+                    
+                    // Add "HOY" label
+                    pdf.setFillColor(231, 76, 60);
+                    pdf.roundedRect(todayX - 5, headerHeight + 2, 10, 4, 1, 1, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(5);
+                    pdf.text('HOY', todayX - 3.5, headerHeight + 4.8);
+                    pdf.setTextColor(0, 0, 0);
+                    
+                    console.log(`Drew today line at x=${todayX.toFixed(1)}`);
+                }
+                
+                updateProgress(95, 'Agregando pie de página...', '');
+                
+                // Footer
+                pdf.setTextColor(100, 100, 100);
+                pdf.setFontSize(5);
+                pdf.text(`Generado: ${new Date().toLocaleString('es-GT')} | Torelo Sistema de Gestión`, margin, pageSize.height - 3);
+                pdf.text(`Página ${pageNum} | ${tasksToExport.length} tareas`, pageSize.width - margin - 30, pageSize.height - 3);
+                
+                updateProgress(100, '¡PDF generado exitosamente!', 'Descargando...');
+                
+                // Save
+                const fileName = `Gantt_${formatDateForInput(exportStartDate)}_${formatDateForInput(exportEndDate)}.pdf`;
+                pdf.save(fileName);
+                
+                setTimeout(() => {
+                    closePrintModal();
+                    showNotification(`✅ PDF guardado: ${fileName}`);
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                updateProgress(0, '❌ Error al generar PDF', error.message);
+                setTimeout(() => {
+                    alert('Error al generar el PDF: ' + error.message);
+                }, 100);
+            }
+        }
+        
+        function loadJsPDF() {
+            return new Promise((resolve, reject) => {
+                if (window.jspdf) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('No se pudo cargar la librería jsPDF'));
+                document.head.appendChild(script);
+            });
+        }
+        
+        function formatDateDisplay(date) {
+            return date.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        
+        function formatDateShort(date) {
+            if (!date) return '';
+            return `${date.getDate()}/${date.getMonth() + 1}`;
+        }
+        
+        function showNotification(message) {
+            const info = document.getElementById('resizeInfo');
+            info.textContent = message;
+            info.style.display = 'block';
+            info.style.background = message.includes('✅') ? 'rgba(39, 174, 96, 0.95)' : 'rgba(0, 0, 0, 0.85)';
+            setTimeout(() => { info.style.display = 'none'; }, 4000);
+        }
+        
+        // ==================== RESIZE HANDLERS ====================
+        
+        function initializeResizeHandlers() {
+            document.querySelectorAll('.column-resizer').forEach(resizer => {
+                let startX, startWidth, column;
+                
+                resizer.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    column = resizer.dataset.column;
+                    startX = e.pageX;
+                    startWidth = columnWidths[column];
+                    
+                    resizer.classList.add('resizing');
+                    document.body.style.cursor = 'col-resize';
+                    
+                    const resizeInfo = document.getElementById('resizeInfo');
+                    resizeInfo.style.display = 'block';
+                    
+                    const handleMouseMove = (e) => {
+                        const diff = e.pageX - startX;
+                        const newWidth = Math.max(getMinWidth(column), startWidth + diff);
+                        columnWidths[column] = newWidth;
+                        updateColumnWidths();
+                        resizeInfo.textContent = `Ancho: ${Math.round(newWidth)}px`;
+                    };
+                    
+                    const handleMouseUp = () => {
+                        resizer.classList.remove('resizing');
+                        document.body.style.cursor = '';
+                        resizeInfo.style.display = 'none';
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                });
+            });
+            
+            const splitter = document.getElementById('panelSplitter');
+            splitter.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const startX = e.pageX;
+                const startPanelWidth = document.getElementById('taskPanel').offsetWidth;
+                
+                document.body.style.cursor = 'col-resize';
+                const resizeInfo = document.getElementById('resizeInfo');
+                resizeInfo.style.display = 'block';
+                
+                const handleMouseMove = (e) => {
+                    const diff = e.pageX - startX;
+                    const containerWidth = document.querySelector('.main-content').offsetWidth;
+                    const maxWidth = containerWidth * maxPanelWidthPercent / 100;
+                    const newWidth = Math.max(minPanelWidth, Math.min(maxWidth, startPanelWidth + diff));
+                    
+                    taskPanelWidth = newWidth;
+                    document.getElementById('taskPanel').style.width = newWidth + 'px';
+                    resizeInfo.textContent = `Panel: ${Math.round(newWidth)}px`;
+                };
+                
+                const handleMouseUp = () => {
+                    document.body.style.cursor = '';
+                    resizeInfo.style.display = 'none';
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+        }
+        
+        function getMinWidth(column) {
+            const minWidths = { 'task-name': 100, 'duration': 40, 'start': 70, 'end': 70, 'status': 60, 'assigned': 60, 'po-amount': 80 };
+            return minWidths[column] || 50;
+        }
+        
+        function updateColumnWidths() {
+            Object.keys(columnWidths).forEach(col => {
+                const header = document.querySelector(`.col-${col}`);
+                if (header) header.style.width = columnWidths[col] + 'px';
+            });
+            
+            document.querySelectorAll('.task-row').forEach(row => {
+                const cells = row.children;
+                const cols = ['task-name', 'duration', 'start', 'end', 'status', 'assigned', 'po-amount'];
+                cols.forEach((col, i) => {
+                    if (cells[i]) cells[i].style.width = columnWidths[col] + 'px';
+                });
+            });
+        }
+        
+        function resetColumnWidths() {
+            columnWidths = {...defaultColumnWidths};
+            updateColumnWidths();
+            taskPanelWidth = 750;
+            document.getElementById('taskPanel').style.width = taskPanelWidth + 'px';
+            showNotification('Columnas restablecidas');
+        }
+        
+        // ==================== DATA LOADING ====================
+        
+        window.addEventListener('load', async function() {
+            try {
+                initializeResizeHandlers();
+                
+                const response = await fetch('latest/status.json?' + Date.now());
+                const statusData = await response.json();
+                
+                const msProjectFile = statusData.files_generated.find(file => 
+                    file.includes('Odoo_Project_Plan_MS_Project_Style')
+                );
+                
+                if (!msProjectFile) {
+                    throw new Error('No se encontró el archivo de MS Project');
+                }
+                
+                document.getElementById('fileInfo').textContent = 
+                    `${msProjectFile} | ${new Date(statusData.last_update).toLocaleString('es-GT')}`;
+                
+                const fileResponse = await fetch(`latest/${msProjectFile}`);
+                const arrayBuffer = await fileResponse.arrayBuffer();
+                
+                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {
+                    type: 'array', cellDates: true, cellNF: true, cellStyles: true, cellHTML: true
+                });
+                
+                let sheetName = workbook.SheetNames.find(n => n.includes('Proyectos')) || workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                
+                const hyperlinks = {};
+                Object.keys(sheet).forEach(addr => {
+                    if (addr[0] !== '!' && sheet[addr].l && sheet[addr].l.Target) {
+                        hyperlinks[addr] = sheet[addr].l.Target;
+                    }
+                });
+                
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+                
+                processExcelData(jsonData, hyperlinks, sheet);
+                
+                document.getElementById('loadingContainer').style.display = 'none';
+                document.getElementById('container').style.display = 'flex';
+                
+                setTimeout(resetView, 100);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingContainer').style.display = 'none';
+                document.getElementById('errorContainer').style.display = 'flex';
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        });
+        
+        function processExcelData(data, hyperlinks, sheet) {
+            const headers = data[0];
+            ganttData = [];
+            
+            const colIndices = {
+                level: headers.findIndex(h => h === 'Level'),
+                id: headers.findIndex(h => h === 'ID'),
+                taskName: headers.findIndex(h => h === 'Task Name' || h === 'Nombre de Tarea'),
+                description: headers.findIndex(h => h === 'Descripción'),
+                startDate: headers.findIndex(h => h === 'Fecha Inicio' || h === 'Inicio'),
+                endDate: headers.findIndex(h => h === 'End Date' || h === 'Fin'),
+                dias: headers.findIndex(h => h === 'Días'),
+                assignedTo: headers.findIndex(h => h === 'Assigned To' || h === 'Asignado a'),
+                dependencies: headers.findIndex(h => h === 'Dependencies'),
+                status: headers.findIndex(h => h === 'Status' || h === 'Estado'),
+                poAmount: headers.findIndex(h => h === 'Pendiente (Q)' || h === 'Total Budget (Q)'),
+                type: headers.findIndex(h => h === 'Type')
+            };
+            
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+                
+                let taskUrl = '';
+                if (colIndices.type !== -1) {
+                    const cellAddr = XLSX.utils.encode_col(colIndices.type) + (i + 1);
+                    if (hyperlinks[cellAddr]) taskUrl = hyperlinks[cellAddr].replace(/&amp;/g, '&');
+                }
+                
+                const task = {
+                    level: parseInt(row[colIndices.level]) || 0,
+                    id: row[colIndices.id] || '',
+                    taskName: row[colIndices.taskName] || '',
+                    description: row[colIndices.description] || '',
+                    startDate: parseDate(row[colIndices.startDate]),
+                    endDate: parseDate(row[colIndices.endDate]),
+                    dias: parseInt(row[colIndices.dias]) || 0,
+                    assignedTo: row[colIndices.assignedTo] || '',
+                    dependencies: row[colIndices.dependencies] || '',
+                    status: row[colIndices.status] || '',
+                    poAmount: row[colIndices.poAmount] || '',
+                    type: row[colIndices.type] || '',
+                    url: taskUrl,
+                    projectId: null
+                };
+                
+                if (task.endDate) {
+                    task.daysRemaining = Math.ceil((task.endDate - today) / (1000 * 60 * 60 * 24));
+                } else {
+                    task.daysRemaining = null;
+                }
+                
+                if (task.type === 'Project') {
+                    task.projectId = task.id;
+                    projectStates[task.id] = true;
+                } else if (ganttData.length > 0) {
+                    for (let j = ganttData.length - 1; j >= 0; j--) {
+                        if (ganttData[j].type === 'Project') {
+                            task.projectId = ganttData[j].id;
+                            break;
+                        }
+                    }
+                }
+                
+                ganttData.push(task);
+            }
+            
+            calculateDateRange();
+            renderGantt();
+        }
+        
+        function parseDate(dateValue) {
+            if (!dateValue) return null;
+            if (dateValue instanceof Date) return isNaN(dateValue) ? null : dateValue;
+            const date = new Date(dateValue);
+            return isNaN(date) ? null : date;
+        }
+        
+        function calculateDateRange() {
+            const dates = ganttData.flatMap(t => [t.startDate, t.endDate]).filter(d => d && !isNaN(d));
+            
+            if (dates.length === 0) {
+                minDate = new Date();
+                maxDate = new Date();
+                maxDate.setMonth(maxDate.getMonth() + 6);
+            } else {
+                minDate = new Date(Math.min(...dates));
+                maxDate = new Date(Math.max(...dates));
+            }
+            
+            originalMinDate = new Date(minDate);
+            originalMaxDate = new Date(maxDate);
+            
+            minDate.setDate(minDate.getDate() - 30);
+            maxDate.setDate(maxDate.getDate() + 60);
+        }
+        
+        // ==================== RENDERING ====================
+        
+        function renderGantt() {
+            const taskList = document.getElementById('taskList');
+            const ganttRows = document.getElementById('ganttRows');
+            const timelineHeader = document.getElementById('timelineHeader');
+            
+            taskList.innerHTML = '';
+            document.getElementById('dependencyContainer').innerHTML = `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#666"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>`;
+            ganttRows.querySelectorAll('.gantt-row').forEach(r => r.remove());
+            timelineHeader.innerHTML = '';
+            
+            const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            document.getElementById('ganttContainer').style.minWidth = (totalDays * dayWidth) + 'px';
+            
+            renderTimeline(timelineHeader, totalDays);
+            renderGridLines(totalDays);
+            positionTodayLine();
+            
+            ganttData.forEach((task, index) => {
+                taskList.appendChild(createTaskRow(task, index));
+                ganttRows.appendChild(createGanttRow(task, index));
+            });
+            
+            updateColumnWidths();
+            syncScroll();
+            setTimeout(renderDependencies, 100);
+        }
+        
+        function getStatusClass(status) {
+            if (!status) return '';
+            const s = status.toLowerCase();
+            if (s.includes('progress')) return 'status-in-progress';
+            if (s.includes('complete')) return 'status-completed';
+            if (s.includes('pend')) return 'status-pending';
+            if (s.includes('hold')) return 'status-on-hold';
+            return '';
+        }
+        
+        function createTaskRow(task, index) {
+            const row = document.createElement('div');
+            row.className = `task-row ${task.type.toLowerCase()} level-${task.level}`;
+            row.dataset.taskId = task.id;
+            row.dataset.index = index;
+            
+            if (task.url) row.classList.add('has-url');
+            if (task.type !== 'Project' && task.projectId && !projectStates[task.projectId]) row.classList.add('collapsed');
+            
+            const taskName = document.createElement('div');
+            taskName.className = 'task-name';
+            taskName.style.width = columnWidths['task-name'] + 'px';
+            
+            if (task.type === 'Project') {
+                const expandIcon = document.createElement('span');
+                expandIcon.className = 'expand-icon' + (projectStates[task.id] ? '' : ' collapsed');
+                expandIcon.textContent = projectStates[task.id] ? '▼' : '▶';
+                expandIcon.onclick = (e) => { e.stopPropagation(); toggleProject(task.id); };
+                taskName.appendChild(expandIcon);
+            }
+            
+            const nameText = document.createElement('span');
+            nameText.textContent = task.taskName;
+            if (task.url) {
+                const linkIcon = document.createElement('span');
+                linkIcon.innerHTML = ' 🔗';
+                linkIcon.style.cssText = 'font-size:10px;opacity:0.6';
+                nameText.appendChild(linkIcon);
+            }
+            taskName.appendChild(nameText);
+            
+            const cols = [
+                { class: 'task-duration', value: task.dias || '', width: 'duration' },
+                { class: 'task-start', value: task.startDate ? formatDate(task.startDate) : '', width: 'start' },
+                { class: 'task-end', value: task.endDate ? formatDate(task.endDate) : '', width: 'end' },
+                { class: `task-status ${getStatusClass(task.status)}`, value: task.status || '', width: 'status' },
+                { class: 'task-assigned', value: task.assignedTo || '', width: 'assigned' },
+                { class: 'task-po-amount', value: task.poAmount || '', width: 'po-amount' }
+            ];
+            
+            row.appendChild(taskName);
+            cols.forEach(col => {
+                const div = document.createElement('div');
+                div.className = col.class;
+                div.style.width = columnWidths[col.width] + 'px';
+                div.textContent = col.value;
+                row.appendChild(div);
+            });
+            
+            row.onclick = (e) => {
+                if (e.target.classList.contains('expand-icon')) return;
+                if (task.url) window.open(task.url, '_blank');
+                else selectTask(task.id, index);
+            };
+            
+            return row;
+        }
+        
+        function createGanttRow(task, index) {
+            const row = document.createElement('div');
+            row.className = `gantt-row ${task.type.toLowerCase()}`;
+            row.dataset.taskId = task.id;
+            row.dataset.index = index;
+            
+            if (task.type !== 'Project' && task.projectId && !projectStates[task.projectId]) row.classList.add('collapsed');
+            
+            if (task.startDate || task.endDate) {
+                const bar = createGanttBar(task);
+                if (bar) row.appendChild(bar);
+            }
+            
+            return row;
+        }
+        
+        function createGanttBar(task) {
+            const bar = document.createElement('div');
+            bar.className = `gantt-bar ${task.type.toLowerCase()}`;
+            bar.dataset.taskId = task.id;
+            
+            if (task.url) bar.style.cursor = 'pointer';
+            
+            let startDays, duration;
+            
+            if (task.startDate && task.endDate) {
+                startDays = Math.floor((task.startDate - minDate) / (1000 * 60 * 60 * 24));
+                duration = Math.ceil((task.endDate - task.startDate) / (1000 * 60 * 60 * 24)) + 1;
+            } else if (task.startDate) {
+                startDays = Math.floor((task.startDate - minDate) / (1000 * 60 * 60 * 24));
+                duration = 7;
+                bar.classList.add('no-dates');
+            } else if (task.endDate) {
+                duration = 7;
+                startDays = Math.floor((task.endDate - minDate) / (1000 * 60 * 60 * 24)) - duration;
+                bar.classList.add('no-dates');
+            } else {
+                return null;
+            }
+            
+            bar.style.left = (startDays * dayWidth) + 'px';
+            bar.style.width = (duration * dayWidth) + 'px';
+            
+            if (task.daysRemaining !== null && task.daysRemaining < 0) bar.classList.add('overdue');
+            else if (task.daysRemaining !== null && task.daysRemaining <= 3) bar.classList.add('due-soon');
+            
+            if (duration * dayWidth > 100) bar.textContent = task.taskName;
+            
+            bar.onmouseover = (e) => showTooltip(e, task);
+            bar.onmouseout = hideTooltip;
+            bar.onclick = (e) => { e.stopPropagation(); if (task.url) window.open(task.url, '_blank'); };
+            
+            return bar;
+        }
+        
+        function renderDependencies() {
+            const svg = document.getElementById('dependencyContainer');
+            svg.querySelectorAll('path').forEach(p => p.remove());
+            svg.style.width = document.getElementById('ganttContainer').scrollWidth + 'px';
+            svg.style.height = (ganttData.length * 28) + 'px';
+            
+            ganttData.forEach((task, toIndex) => {
+                if (task.dependencies) {
+                    const matches = task.dependencies.match(/\((\d+)\)/g) || task.dependencies.split(',');
+                    matches.forEach(m => {
+                        const id = m.replace(/[()]/g, '').trim();
+                        const fromIndex = ganttData.findIndex(t => t.id === id);
+                        if (fromIndex !== -1) drawDependencyLine(fromIndex, toIndex);
+                    });
+                }
+            });
+        }
+        
+        function drawDependencyLine(fromIndex, toIndex) {
+            const svg = document.getElementById('dependencyContainer');
+            const fromTask = ganttData[fromIndex];
+            const toTask = ganttData[toIndex];
+            
+            if (!fromTask.endDate || !toTask.startDate) return;
+            
+            const fromBar = document.querySelector(`.gantt-bar[data-task-id="${fromTask.id}"]`);
+            const toBar = document.querySelector(`.gantt-bar[data-task-id="${toTask.id}"]`);
+            
+            if (!fromBar || !toBar) return;
+            
+            const fromX = parseInt(fromBar.style.left) + parseInt(fromBar.style.width);
+            const fromY = fromIndex * 28 + 14;
+            const toX = parseInt(toBar.style.left);
+            const toY = toIndex * 28 + 14;
+            const midX = fromX + 20;
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.classList.add('dependency-line');
+            path.setAttribute('d', `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX - 5} ${toY}`);
+            svg.appendChild(path);
+        }
+        
+        function renderTimeline(container, totalDays) {
+            const monthRow = document.createElement('div');
+            monthRow.className = 'month-row';
+            const dayRow = document.createElement('div');
+            dayRow.className = 'day-row';
+            
+            let currentDate = new Date(minDate);
+            let currentMonth = -1;
+            let monthStart = 0;
+            
+            for (let i = 0; i < totalDays; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                if (currentDate.getDay() === 0 || currentDate.getDay() === 6) dayCell.classList.add('weekend');
+                if (currentDate.toDateString() === today.toDateString()) dayCell.classList.add('today');
+                dayCell.textContent = currentDate.getDate();
+                dayRow.appendChild(dayCell);
+                
+                if (currentDate.getMonth() !== currentMonth) {
+                    if (currentMonth !== -1) {
+                        const monthCell = document.createElement('div');
+                        monthCell.className = 'month-cell';
+                        monthCell.style.width = ((i - monthStart) * dayWidth) + 'px';
+                        monthCell.textContent = getMonthName(currentMonth) + ' ' + currentDate.getFullYear();
+                        monthRow.appendChild(monthCell);
+                    }
+                    currentMonth = currentDate.getMonth();
+                    monthStart = i;
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            const monthCell = document.createElement('div');
+            monthCell.className = 'month-cell';
+            monthCell.style.width = ((totalDays - monthStart) * dayWidth) + 'px';
+            monthCell.textContent = getMonthName(currentMonth) + ' ' + currentDate.getFullYear();
+            monthRow.appendChild(monthCell);
+            
+            container.appendChild(monthRow);
+            container.appendChild(dayRow);
+        }
+        
+        function renderGridLines(totalDays) {
+            const gridLines = document.getElementById('gridLines');
+            gridLines.innerHTML = '';
+            const totalHeight = ganttData.length * 28;
+            let currentDate = new Date(minDate);
+            
+            for (let i = 0; i < totalDays; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line';
+                line.style.left = (i * dayWidth) + 'px';
+                line.style.height = totalHeight + 'px';
+                if (currentDate.getDay() === 1) line.classList.add('week');
+                if (currentDate.getDate() === 1) line.classList.add('month');
+                gridLines.appendChild(line);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+        
+        function positionTodayLine() {
+            const todayLine = document.getElementById('todayLine');
+            const daysSinceStart = Math.floor((today - minDate) / (1000 * 60 * 60 * 24));
+            todayLine.style.left = (daysSinceStart * dayWidth) + 'px';
+            todayLine.style.height = (ganttData.length * 28) + 'px';
+        }
+        
+        function showTooltip(event, task) {
+            const tooltip = document.getElementById('tooltip');
+            let html = `<div class="tooltip-title">${task.taskName}</div>`;
+            if (task.url) html += `<div style="font-size:10px;color:#90EE90;margin-bottom:8px;">🔗 Click para abrir en Odoo</div>`;
+            if (task.status) html += `<div class="tooltip-row"><span class="tooltip-label">Estado:</span><span>${task.status}</span></div>`;
+            if (task.assignedTo) html += `<div class="tooltip-row"><span class="tooltip-label">Asignado:</span><span>${task.assignedTo}</span></div>`;
+            if (task.startDate) html += `<div class="tooltip-row"><span class="tooltip-label">Inicio:</span><span>${formatDate(task.startDate)}</span></div>`;
+            if (task.endDate) html += `<div class="tooltip-row"><span class="tooltip-label">Fin:</span><span>${formatDate(task.endDate)}</span></div>`;
+            if (task.dias) html += `<div class="tooltip-row"><span class="tooltip-label">Duración:</span><span>${task.dias} días</span></div>`;
+            if (task.poAmount) html += `<div class="tooltip-row"><span class="tooltip-label">Pendiente:</span><span style="color:#90EE90;font-weight:bold;">${task.poAmount}</span></div>`;
+            
+            tooltip.innerHTML = html;
+            tooltip.style.display = 'block';
+            
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = Math.min(rect.left, window.innerWidth - 360) + 'px';
+            tooltip.style.top = (rect.bottom + 5) + 'px';
+        }
+        
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+        
+        function syncScroll() {
+            const taskPanel = document.getElementById('taskPanel');
+            const ganttPanel = document.getElementById('ganttPanel');
+            let syncing = false;
+            
+            taskPanel.addEventListener('scroll', () => {
+                if (!syncing) { syncing = true; ganttPanel.scrollTop = taskPanel.scrollTop; requestAnimationFrame(() => syncing = false); }
+            });
+            ganttPanel.addEventListener('scroll', () => {
+                if (!syncing) { syncing = true; taskPanel.scrollTop = ganttPanel.scrollTop; requestAnimationFrame(() => syncing = false); }
+            });
+        }
+        
+        function toggleProject(projectId) {
+            if (!projectId) return;
+            projectStates[projectId] = !projectStates[projectId];
+            
+            const icon = document.querySelector(`.task-row[data-task-id="${projectId}"] .expand-icon`);
+            if (icon) {
+                icon.textContent = projectStates[projectId] ? '▼' : '▶';
+                icon.classList.toggle('collapsed', !projectStates[projectId]);
+            }
+            
+            ganttData.forEach((task, index) => {
+                if (task.projectId === projectId && task.id !== projectId) {
+                    const taskRow = document.querySelector(`.task-row[data-index="${index}"]`);
+                    const ganttRow = document.querySelector(`.gantt-row[data-index="${index}"]`);
+                    if (taskRow) taskRow.classList.toggle('collapsed', !projectStates[projectId]);
+                    if (ganttRow) ganttRow.classList.toggle('collapsed', !projectStates[projectId]);
+                }
+            });
+            
+            setTimeout(renderDependencies, 100);
+        }
+        
+        function selectTask(taskId, index) {
+            document.querySelectorAll('.task-row').forEach(r => r.style.background = '');
+            const taskRow = document.querySelector(`.task-row[data-index="${index}"]`);
+            if (taskRow && !taskRow.classList.contains('project')) taskRow.style.background = '#d4e8f7';
+        }
+        
+        function expandAll() {
+            Object.keys(projectStates).forEach(id => projectStates[id] = true);
+            renderGantt();
+        }
+        
+        function collapseAll() {
+            Object.keys(projectStates).forEach(id => projectStates[id] = false);
+            renderGantt();
+        }
+        
+        function resetView() {
+            const ganttPanel = document.getElementById('ganttPanel');
+            const daysSinceStart = Math.floor((today - minDate) / (1000 * 60 * 60 * 24));
+            ganttPanel.scrollLeft = Math.max(0, (daysSinceStart * dayWidth) - (ganttPanel.offsetWidth / 2));
+            ganttPanel.scrollTop = 0;
+        }
+        
+        function goBack() { window.location.href = '/'; }
+        
+        function showHelp() {
+            alert(`📊 Diagrama de Gantt - Ayuda
+
+🖱️ NAVEGACIÓN:
+• Click en ▼/▶ para expandir/colapsar proyectos
+• Scroll horizontal para ver la línea de tiempo
+• La línea roja indica HOY
+
+📑 EXPORTAR PDF:
+• Click en "Exportar PDF" para abrir opciones
+• Seleccione los proyectos específicos a exportar
+• Elija el rango de fechas deseado
+• Use los botones rápidos: Este Mes, Trimestre, etc.
+• Elija el tamaño de papel (A3 recomendado)
+• Ajuste el ancho de la lista de tareas
+
+🔗 ABRIR EN ODOO:
+• Click en cualquier tarea con 🔗
+
+📈 COLORES:
+• Azul = Proyecto
+• Verde = Tarea activa
+• Amarillo = Subtarea
+• Rojo = Vencida
+• Naranja = Próxima a vencer`);
+        }
+        
+        function formatDate(date) {
+            if (!date) return '';
+            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        }
+        
+        function getMonthName(idx) {
+            return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][idx];
+        }
+    </script>
+</body>
+</html>
