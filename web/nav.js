@@ -4,7 +4,7 @@
  * Usage: Add this to any page:
  *   <script src="nav.js" data-active="gantt"></script>
  * 
- * data-active values: dashboard, gantt, cashflow, attendance, stock, search
+ * data-active values: dashboard, gantt, cashflow, attendance, stock, po, inventory, search
  * 
  * This script:
  *   1. Injects the sidebar HTML + CSS
@@ -48,39 +48,51 @@
         .tkpi-sb-brand-text { font-size: 16px; font-weight: 700; letter-spacing: -.3px;
             background: linear-gradient(135deg, #e4e5e9, #a78bfa);
             -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        .tkpi-sb-brand small { display: block; font-size: 11px; color: #5c5f6b; font-weight: 400;
-            -webkit-text-fill-color: #5c5f6b; }
+        .tkpi-sb-brand small { display: block; font-size: 11px; font-weight: 500;
+            background: none; -webkit-text-fill-color: #5c5f6b; margin-top: 1px; }
 
-        .tkpi-sb-nav { flex: 1; overflow-y: auto; padding: 16px 12px; }
-        .tkpi-sb-section { margin-bottom: 24px; }
-        .tkpi-sb-label {
-            font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
-            color: #5c5f6b; padding: 0 8px; margin-bottom: 8px;
-        }
+        .tkpi-sb-nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+        .tkpi-sb-section { margin-bottom: 8px; }
+        .tkpi-sb-label { padding: 8px 20px 4px; font-size: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .8px; color: #5c5f6b; }
+
         .tkpi-sb-item {
             display: flex; align-items: center; gap: 10px;
-            padding: 10px 12px; border-radius: 8px;
-            color: #8b8f9a; text-decoration: none;
-            font-size: 13.5px; font-weight: 500;
-            transition: all .15s; cursor: pointer;
+            padding: 9px 20px; margin: 1px 8px; border-radius: 8px;
+            color: #8b8f9a; text-decoration: none; font-size: 13.5px; font-weight: 500;
+            transition: all .15s; cursor: pointer; border: none; background: none;
+            width: calc(100% - 16px); text-align: left; font-family: inherit;
         }
         .tkpi-sb-item:hover { background: #1f2128; color: #e4e5e9; }
-        .tkpi-sb-item.active { background: rgba(108,92,231,.15); color: #7c6ff0; }
-        .tkpi-sb-item .icon { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
-        .tkpi-sb-item .badge {
-            margin-left: auto; font-size: 10px; font-weight: 700;
-            padding: 2px 7px; border-radius: 6px;
-        }
-        .tkpi-sb-item .badge-purple { background: rgba(108,92,231,.15); color: #7c6ff0; }
-        .tkpi-sb-item .badge-green { background: rgba(0,214,143,.12); color: #00d68f; }
+        .tkpi-sb-item.active { background: rgba(108,92,231,.12); color: #a78bfa; }
+        .tkpi-sb-item .icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
 
-        /* Hamburger for mobile */
+        .tkpi-sb-badge {
+            margin-left: auto; padding: 2px 8px; border-radius: 10px;
+            font-size: 10px; font-weight: 600;
+        }
+        .badge-green { background: rgba(0,214,143,.12); color: #00d68f; }
+        .badge-purple { background: rgba(108,92,231,.12); color: #a78bfa; }
+        .badge-amber { background: rgba(240,180,41,.12); color: #f0b429; }
+        .badge-blue { background: rgba(72,191,227,.12); color: #48bfe3; }
+        .badge-red { background: rgba(255,107,107,.12); color: #ff6b6b; }
+
+        .tkpi-sb-footer {
+            padding: 16px 20px; border-top: 1px solid #2a2d37;
+            font-size: 12px; color: #5c5f6b;
+        }
+        .tkpi-sb-footer .dot {
+            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: #00d68f; margin-right: 6px; vertical-align: middle;
+        }
+        .tkpi-sb-footer .dot.offline { background: #ff6b6b; }
+
+        /* Hamburger */
         .tkpi-hamburger {
-            display: none; position: fixed; top: 12px; left: 12px; z-index: 99995;
-            width: 40px; height: 40px; border-radius: 8px;
+            display: none; position: fixed; top: 14px; left: 14px; z-index: 99991;
+            width: 40px; height: 40px; border-radius: 10px;
             background: #181a20; border: 1px solid #2a2d37;
-            color: #8b8f9a; font-size: 20px; cursor: pointer;
-            place-items: center;
+            place-items: center; cursor: pointer; color: #e4e5e9; font-size: 18px;
         }
 
         /* Overlay for mobile */
@@ -114,7 +126,9 @@
             { id: 'gantt', icon: '📋', label: 'Plan de Proyectos', href: 'gantt-viewer.html', badge: 'Gantt', badgeClass: 'badge-purple' },
             { id: 'cashflow', icon: '💰', label: 'Flujo de Pagos', href: 'cashflow-viewer.html' },
             { id: 'attendance', icon: '👷', label: 'Asistencia', href: 'attendance-viewer.html', badge: 'Live', badgeClass: 'badge-green' },
-            { id: 'stock', icon: '📦', label: 'Movimientos de Stock', href: 'stock-explorer.html', badge: 'Nuevo', badgeClass: 'badge-green' },
+            { id: 'stock', icon: '📦', label: 'Movimientos de Stock', href: 'stock-explorer.html' },
+            { id: 'po', icon: '🛒', label: 'Órdenes de Compra', href: 'po-viewer.html', badge: 'Nuevo', badgeClass: 'badge-green' },
+            { id: 'inventory', icon: '🏗️', label: 'Inventario', href: 'inventory-viewer.html', badge: 'Nuevo', badgeClass: 'badge-green' },
             { id: 'search', icon: '🔍', label: 'Buscar Documentos', href: 'search.html' },
         ]},
     ];
@@ -125,63 +139,100 @@
         navHTML += `<div class="tkpi-sb-section"><div class="tkpi-sb-label">${section.section}</div>`;
         section.items.forEach(item => {
             const isActive = activePage === item.id ? ' active' : '';
-            const badge = item.badge ? `<span class="badge ${item.badgeClass || ''}">${item.badge}</span>` : '';
-            navHTML += `<a href="${item.href}" class="tkpi-sb-item${isActive}">
-                <span class="icon">${item.icon}</span>${item.label}${badge}</a>`;
+            const badge = item.badge ? `<span class="tkpi-sb-badge ${item.badgeClass || ''}">${item.badge}</span>` : '';
+            navHTML += `<a href="${item.href}" class="tkpi-sb-item${isActive}"><span class="icon">${item.icon}</span>${item.label}${badge}</a>`;
         });
         navHTML += '</div>';
     });
 
-    const sidebar = document.createElement('div');
+    // ─── Create sidebar element ───
+    const sidebar = document.createElement('aside');
     sidebar.className = 'tkpi-sidebar';
     sidebar.id = 'tkpiSidebar';
     sidebar.innerHTML = `
         <div class="tkpi-sb-brand">
             <div class="logo">T</div>
-            <div><span class="tkpi-sb-brand-text">Torelo KPI</span><small>Centro de Inteligencia</small></div>
+            <div>
+                <div class="tkpi-sb-brand-text">Torelo KPI</div>
+                <small>Centro de Inteligencia</small>
+            </div>
         </div>
         <nav class="tkpi-sb-nav">${navHTML}</nav>
+        <div class="tkpi-sb-footer">
+            <span class="dot" id="tkpiServerDot"></span>
+            <span id="tkpiServerStatus">Verificando...</span>
+        </div>
     `;
 
-    // Hamburger button
+    // ─── Create hamburger ───
     const hamburger = document.createElement('button');
     hamburger.className = 'tkpi-hamburger';
     hamburger.id = 'tkpiHamburger';
-    hamburger.textContent = '☰';
-    hamburger.onclick = function() {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('show');
-    };
+    hamburger.innerHTML = '☰';
+    hamburger.setAttribute('aria-label', 'Abrir menú');
 
-    // Mobile overlay
+    // ─── Create overlay ───
     const overlay = document.createElement('div');
     overlay.className = 'tkpi-overlay';
     overlay.id = 'tkpiOverlay';
-    overlay.onclick = function() {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('show');
-    };
 
-    // ─── Inject into page ───
+    // ─── Insert into DOM ───
     document.body.prepend(overlay);
     document.body.prepend(sidebar);
     document.body.prepend(hamburger);
 
-    // Shift existing page content
-    // Find the first major container element to shift
-    const shiftTargets = document.querySelectorAll('body > div, body > main, body > section');
-    shiftTargets.forEach(el => {
-        if (el !== sidebar && el !== overlay && el !== hamburger && !el.classList.contains('tkpi-sidebar')) {
-            el.classList.add('tkpi-page-shifted');
-        }
-    });
+    // ─── Shift page content ───
+    // Find the first main content element (.main, main, #app, or first child)
+    const mainEl = document.querySelector('.main') || document.querySelector('main') || document.querySelector('#app');
+    if (mainEl) {
+        mainEl.classList.add('tkpi-page-shifted');
+    }
 
-    // Also shift any fixed-position elements that aren't our sidebar
-    // (loading screens, headers, etc.)
-    requestAnimationFrame(() => {
-        document.querySelectorAll('.loading-container, .error-container').forEach(el => {
-            el.style.marginLeft = SIDEBAR_W + 'px';
-        });
-    });
+    // ─── Toggle handlers ───
+    function toggleSidebar() {
+        const sb = document.getElementById('tkpiSidebar');
+        const ov = document.getElementById('tkpiOverlay');
+        sb.classList.toggle('open');
+        ov.classList.toggle('show');
+    }
+
+    hamburger.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+
+    // ─── Server status check ───
+    async function checkServer() {
+        const dot = document.getElementById('tkpiServerDot');
+        const status = document.getElementById('tkpiServerStatus');
+        try {
+            const resp = await fetch('/latest/health.json?' + Date.now(), { signal: AbortSignal.timeout(5000) });
+            if (resp.ok) {
+                const data = await resp.json();
+                dot.className = 'dot';
+                const ts = data.last_run ? new Date(data.last_run) : null;
+                status.textContent = ts
+                    ? `Conectado — ${ts.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}`
+                    : 'Conectado';
+            } else {
+                throw new Error('not ok');
+            }
+        } catch {
+            // Fallback: try legacy status.json
+            try {
+                const resp2 = await fetch('/latest/status.json?' + Date.now(), { signal: AbortSignal.timeout(5000) });
+                if (resp2.ok) {
+                    const data = await resp2.json();
+                    dot.className = 'dot';
+                    status.textContent = `Conectado — ${data.date_folder || 'hoy'}`;
+                } else {
+                    throw new Error('not ok');
+                }
+            } catch {
+                dot.className = 'dot offline';
+                status.textContent = 'Sin conexión';
+            }
+        }
+    }
+    checkServer();
+    setInterval(checkServer, 60000); // Re-check every minute
 
 })();

@@ -107,6 +107,7 @@
             background: var(--accent-glow); color: var(--accent-soft);
         }
         .nav-item .badge.green { background: var(--green-dim); color: var(--green); }
+        .nav-item .badge.blue { background: var(--blue-dim); color: var(--blue); }
 
         .sidebar-footer {
             padding: 16px; border-top: 1px solid var(--border); flex-shrink: 0;
@@ -201,7 +202,7 @@
         .section-header h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .section-body { padding: 22px; }
 
-        /* Viewer Cards (quick access to sub-pages) */
+        /* Viewer Cards */
         .viewer-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -364,7 +365,6 @@
 
         .error-msg { background: var(--red-dim); color: var(--red); padding: 8px 12px; border-radius: 6px; font-size: 13px; display: none; margin-top: 8px; }
 
-        /* Quick search chips */
         .chip {
             display: inline-block; padding: 5px 12px; border-radius: 20px;
             font-size: 12px; background: var(--surface-3); color: var(--text-dim);
@@ -372,7 +372,6 @@
         }
         .chip:hover { border-color: var(--accent); color: var(--accent-soft); }
 
-        /* Email results */
         .email-result {
             padding: 14px 16px; border-radius: 8px; background: var(--surface-2);
             border: 1px solid var(--border); margin-bottom: 8px; transition: all .15s;
@@ -385,7 +384,6 @@
         .spinner { width: 22px; height: 22px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
         @keyframes spin { to{transform:rotate(360deg)} }
 
-        /* Toast */
         .toast {
             position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
             background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
@@ -394,7 +392,6 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* Empty state */
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; }
         .empty-state p { font-size: 13px; }
@@ -447,12 +444,19 @@
                 <span class="nav-icon">👷</span> Asistencia
                 <span class="badge green">Live</span>
             </a>
-            <a href="search.html" class="nav-item">
-                <span class="nav-icon">🔍</span> Buscar Documentos
-            </a>
             <a href="stock-explorer.html" class="nav-item">
                 <span class="nav-icon">📦</span> Movimientos de Stock
+            </a>
+            <a href="po-viewer.html" class="nav-item">
+                <span class="nav-icon">🛒</span> Órdenes de Compra
                 <span class="badge green">Nuevo</span>
+            </a>
+            <a href="inventory-viewer.html" class="nav-item">
+                <span class="nav-icon">🏗️</span> Inventario
+                <span class="badge green">Nuevo</span>
+            </a>
+            <a href="search.html" class="nav-item">
+                <span class="nav-icon">🔍</span> Buscar Documentos
             </a>
         </div>
 
@@ -561,7 +565,21 @@
                         <div class="vc-icon">📦</div>
                         <div class="vc-title">Explorador de Movimientos de Stock</div>
                         <div class="vc-desc">Análisis interactivo de todos los movimientos de materiales: entradas, salidas, producción, con filtros y gráficos.</div>
-                        <div class="vc-tag" style="background:var(--red-dim);color:var(--red)">Nuevo ✨</div>
+                        <div class="vc-tag" style="background:var(--red-dim);color:var(--red)">Stock</div>
+                    </a>
+                    <a href="po-viewer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,#48bfe3,#0984e3)"></div>
+                        <div class="vc-icon">🛒</div>
+                        <div class="vc-title">Órdenes de Compra</div>
+                        <div class="vc-desc">Seguimiento de POs: estado, montos, proveedores, porcentaje recibido y facturado.</div>
+                        <div class="vc-tag" style="background:var(--blue-dim);color:var(--blue)">Nuevo ✨</div>
+                    </a>
+                    <a href="inventory-viewer.html" class="viewer-card">
+                        <div class="vc-stripe" style="background:linear-gradient(90deg,#00d68f,#00b894)"></div>
+                        <div class="vc-icon">🏗️</div>
+                        <div class="vc-title">Dashboard de Inventario</div>
+                        <div class="vc-desc">Niveles de stock en tiempo real, alertas de reorden, valor por categoría y ubicación.</div>
+                        <div class="vc-tag" style="background:var(--green-dim);color:var(--green)">Nuevo ✨</div>
                     </a>
                     <a href="search.html" class="viewer-card">
                         <div class="vc-stripe" style="background:linear-gradient(90deg,var(--blue),#80d8f4)"></div>
@@ -606,7 +624,7 @@
 
         <!-- Footer -->
         <footer style="text-align:center;padding:32px 0 16px;color:var(--text-muted);font-size:12px">
-            <p>© 2024 Torelo — Sistema de Reportes KPI</p>
+            <p>© 2025 Torelo — Sistema de Reportes KPI</p>
             <p style="margin-top:4px">Generación automática diaria a las 6:30 AM (Hora de Guatemala)</p>
         </footer>
     </div>
@@ -729,6 +747,12 @@
     </div>
 </div>
 
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 <!-- ══════════ TOAST ══════════ -->
 <div class="toast" id="toast"></div>
 
@@ -783,8 +807,30 @@ function showToast(msg) {
 
 // ─── Load Dashboard Data ───
 async function loadDashboard() {
+    let resp;
     try {
-        const resp = await fetch('latest/status.json?' + Date.now());
+        resp = await fetch('latest/status.json?' + Date.now(), {
+            signal: AbortSignal.timeout(10000)
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+        document.getElementById('statusLabel').textContent = 'Sin conexión';
+        document.getElementById('statusPill').className = 'status-pill err';
+        document.getElementById('serverDot').className = 'dot error';
+        document.getElementById('serverStatus').textContent = 'Sin conexión al servidor';
+        document.getElementById('latestReports').innerHTML = `
+            <div class="empty-state">
+                <div class="es-icon">⚠️</div>
+                <p>No se pudo conectar al servidor de reportes.</p>
+                <p style="margin-top:8px;font-size:12px;color:var(--text-muted)">
+                    Verifica que el servidor esté activo y que status.json exista en /latest/
+                </p>
+            </div>`;
+        return;
+    }
+
+    try {
         const data = await resp.json();
 
         // KPI: Files
@@ -849,13 +895,13 @@ async function loadDashboard() {
         loadArchive(data);
 
     } catch (err) {
-        console.error('Dashboard load error:', err);
+        console.error('Dashboard parse error:', err);
         document.getElementById('serverDot').className = 'dot error';
-        document.getElementById('serverStatus').textContent = 'Sin conexión';
+        document.getElementById('serverStatus').textContent = 'Error de datos';
         document.getElementById('statusPill').className = 'status-pill err';
-        document.getElementById('statusLabel').textContent = 'Error de conexión';
+        document.getElementById('statusLabel').textContent = 'Error de datos';
         document.getElementById('latestReports').innerHTML =
-            '<div class="empty-state"><div class="es-icon">⚠️</div><p>Error al cargar reportes. Recarga la página.</p></div>';
+            '<div class="empty-state"><div class="es-icon">⚠️</div><p>Error al procesar datos del servidor. Recarga la página.</p></div>';
     }
 }
 

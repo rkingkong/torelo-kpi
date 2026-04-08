@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torelo — Órdenes de Compra</title>
+    <link rel="stylesheet" href="theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Page-specific overrides */
+        .po-status {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+        }
+        .po-status.purchase { background: var(--green-dim); color: var(--green); }
+        .po-status.draft { background: var(--amber-dim); color: var(--amber); }
+        .po-status.sent { background: var(--blue-dim); color: var(--blue); }
+        .po-status.cancel { background: var(--red-dim); color: var(--red); }
+        .po-status.done { background: rgba(108,92,231,.12); color: var(--accent-soft); }
+
+        .progress-bar {
+            height: 6px; background: var(--surface-3); border-radius: 3px;
+            overflow: hidden; min-width: 80px;
+        }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+
+        .vendor-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 12px; color: var(--text-dim);
+        }
+
+        .summary-strip {
+            display: flex; gap: 24px; padding: 14px 22px;
+            background: var(--surface-2); border-bottom: 1px solid var(--border);
+            font-size: 12px; color: var(--text-dim); flex-wrap: wrap;
+        }
+        .summary-strip strong { color: var(--text); margin-right: 4px; }
+
+        .export-btn {
+            padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+            cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .export-btn:hover { background: var(--surface-3); color: var(--text); }
+    </style>
+</head>
+<body>
+
+<!-- Nav injected by nav.js -->
+<script src="nav.js" data-active="po"></script>
+
+<div class="main">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-toggle" onclick="document.getElementById('tkpiSidebar').classList.toggle('open')">☰</button>
+            <h1>🛒 Órdenes de Compra</h1>
+        </div>
+        <div class="topbar-right">
+            <button class="export-btn" onclick="exportCSV()">📥 Exportar CSV</button>
+            <span class="status-pill ok" id="statusPill" style="display:none">
+                <span class="sp-dot"></span>
+                <span id="statusLabel"></span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Loading -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="spinner"></div>
+        <p style="color:var(--text-dim);font-size:14px">Cargando órdenes de compra...</p>
+        <p style="color:var(--text-muted);font-size:12px">Procesando archivo del servidor</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorScreen" style="display:none" class="content">
+        <div class="error-banner" id="errorMsg">
+            ⚠️ No se pudo cargar el archivo de órdenes de compra.
+        </div>
+        <div class="empty-state">
+            <div class="es-icon">📋</div>
+            <p>Verifica que el script <code class="mono">08_purchase_order_report.py</code> se haya ejecutado correctamente.</p>
+            <p style="margin-top:8px">El archivo esperado es: <code class="mono">latest/purchase_orders.xlsx</code></p>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" style="display:none">
+        <div class="content">
+
+            <!-- KPIs -->
+            <div class="kpi-grid" id="kpiGrid"></div>
+
+            <!-- Filters -->
+            <div class="section-card">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">Estado:</label>
+                        <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Proveedor:</label>
+                        <select class="filter-select" id="filterVendor" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Desde:</label>
+                        <input type="date" class="filter-input" id="filterDateFrom" onchange="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Hasta:</label>
+                        <input type="date" class="filter-input" id="filterDateTo" onchange="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <input type="text" class="filter-input" id="searchInput" placeholder="🔍 Buscar PO, proveedor, producto..." oninput="applyFilters()" style="min-width:220px">
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Limpiar</button>
+                </div>
+
+                <!-- Summary strip -->
+                <div class="summary-strip" id="summaryStrip"></div>
+
+                <!-- Charts -->
+                <div class="section-body">
+                    <div class="chart-grid" style="margin-bottom:20px">
+                        <div class="chart-card">
+                            <h3>📊 Por Estado</h3>
+                            <div id="chartStatus"></div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>🏢 Top 10 Proveedores (Monto)</h3>
+                            <div id="chartVendor"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="data-table-wrap">
+                    <table class="data-table" id="poTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('po_name')">PO #</th>
+                                <th onclick="sortTable('vendor')">Proveedor</th>
+                                <th onclick="sortTable('order_date')">Fecha</th>
+                                <th onclick="sortTable('status')">Estado</th>
+                                <th onclick="sortTable('total_amount')" style="text-align:right">Monto Total</th>
+                                <th onclick="sortTable('received_pct')" style="text-align:right">Recibido</th>
+                                <th onclick="sortTable('invoiced_pct')" style="text-align:right">Facturado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="poTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer style="text-align:center;padding:32px 0 16px;color:var(--text-muted);font-size:12px">
+    <p>© 2024 Torelo — Sistema de Reportes KPI</p>
+</footer>
+
+<script>
+// ═══════ STATE ═══════
+let allData = [];
+let filteredData = [];
+let sortCol = 'order_date';
+let sortAsc = false;
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
+// ═══════ LOAD DATA ═══════
+async function loadData() {
+    const paths = [
+        'latest/purchase_orders.xlsx',
+        'latest/purchase_order_report.xlsx',
+        'latest/po_report.xlsx'
+    ];
+
+    for (const path of paths) {
+        try {
+            const resp = await fetch(path + '?' + Date.now());
+            if (!resp.ok) continue;
+
+            const buf = await resp.arrayBuffer();
+            const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const raw = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+            if (raw.length === 0) continue;
+
+            // Normalize column names (handle various naming conventions)
+            allData = raw.map(row => {
+                const r = {};
+                Object.keys(row).forEach(k => {
+                    r[k.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')] = row[k];
+                });
+                return {
+                    po_name: r.po_name || r.order_reference || r.name || r.po || r.reference || '',
+                    vendor: r.vendor || r.partner || r.supplier || r.vendor_name || r.partner_name || '',
+                    order_date: parseDate(r.order_date || r.date_order || r.date || r.order_deadline || ''),
+                    status: r.status || r.state || r.order_status || '',
+                    total_amount: parseFloat(r.total_amount || r.amount_total || r.total || r.amount || 0),
+                    received_pct: parseFloat(r.received_pct || r.received || r.qty_received_pct || 0),
+                    invoiced_pct: parseFloat(r.invoiced_pct || r.invoiced || r.qty_invoiced_pct || 0),
+                    currency: r.currency || r.currency_id || 'GTQ',
+                    product_count: parseInt(r.product_count || r.line_count || r.products || 0),
+                    _raw: row
+                };
+            });
+
+            filteredData = [...allData];
+            populateFilters();
+            render();
+
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            const pill = document.getElementById('statusPill');
+            pill.style.display = 'inline-flex';
+            document.getElementById('statusLabel').textContent = `${allData.length} órdenes`;
+            return;
+
+        } catch (e) {
+            console.warn('Failed to load ' + path, e);
+        }
+    }
+
+    // All paths failed
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('errorScreen').style.display = 'block';
+}
+
+function parseDate(val) {
+    if (!val) return '';
+    if (val instanceof Date) return val.toISOString().substring(0, 10);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? String(val).substring(0, 10) : d.toISOString().substring(0, 10);
+}
+
+// ═══════ FILTERS ═══════
+function populateFilters() {
+    const statuses = [...new Set(allData.map(r => r.status))].filter(Boolean).sort();
+    const vendors = [...new Set(allData.map(r => r.vendor))].filter(Boolean).sort();
+
+    const statusSel = document.getElementById('filterStatus');
+    statuses.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = formatStatus(s); statusSel.appendChild(o); });
+
+    const vendorSel = document.getElementById('filterVendor');
+    vendors.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; vendorSel.appendChild(o); });
+}
+
+function applyFilters() {
+    const status = document.getElementById('filterStatus').value;
+    const vendor = document.getElementById('filterVendor').value;
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    filteredData = allData.filter(r => {
+        if (status && r.status !== status) return false;
+        if (vendor && r.vendor !== vendor) return false;
+        if (dateFrom && r.order_date < dateFrom) return false;
+        if (dateTo && r.order_date > dateTo) return false;
+        if (search) {
+            const hay = [r.po_name, r.vendor, r.status, r.order_date].join(' ').toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        return true;
+    });
+
+    currentPage = 1;
+    render();
+}
+
+function resetFilters() {
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterVendor').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    document.getElementById('searchInput').value = '';
+    applyFilters();
+}
+
+// ═══════ RENDER ═══════
+function render() {
+    renderKPIs();
+    renderSummary();
+    renderCharts();
+    renderTable();
+}
+
+function renderKPIs() {
+    const d = filteredData;
+    const total = d.reduce((s, r) => s + r.total_amount, 0);
+    const confirmed = d.filter(r => r.status === 'purchase' || r.status === 'done');
+    const pending = d.filter(r => r.status === 'draft' || r.status === 'sent');
+    const avgReceived = d.length ? d.reduce((s, r) => s + (r.received_pct || 0), 0) / d.length : 0;
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--accent)"></div>
+            <div class="kpi-icon">🛒</div>
+            <div class="kpi-label">ÓRDENES DE COMPRA</div>
+            <div class="kpi-value">${d.length.toLocaleString()}</div>
+            <div class="kpi-sub">${allData.length !== d.length ? `de ${allData.length} total` : 'total'}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--green)"></div>
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-label">MONTO TOTAL</div>
+            <div class="kpi-value">Q${(total / 1000).toFixed(0)}K</div>
+            <div class="kpi-sub">Q${total.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--green)"></div>
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-label">CONFIRMADAS</div>
+            <div class="kpi-value text-green">${confirmed.length}</div>
+            <div class="kpi-sub">Q${confirmed.reduce((s, r) => s + r.total_amount, 0).toLocaleString('es-GT', { maximumFractionDigits: 0 })}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--amber)"></div>
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-label">PENDIENTES</div>
+            <div class="kpi-value text-amber">${pending.length}</div>
+            <div class="kpi-sub">Recibido promedio: ${avgReceived.toFixed(0)}%</div>
+        </div>
+    `;
+}
+
+function renderSummary() {
+    const d = filteredData;
+    const vendors = new Set(d.map(r => r.vendor)).size;
+    const dateRange = d.length
+        ? `${d.reduce((m, r) => r.order_date && r.order_date < m ? r.order_date : m, '9999')} — ${d.reduce((m, r) => r.order_date && r.order_date > m ? r.order_date : m, '')}`
+        : '—';
+    document.getElementById('summaryStrip').innerHTML = `
+        <span>📋 <strong>${d.length}</strong> órdenes filtradas</span>
+        <span>🏢 <strong>${vendors}</strong> proveedores</span>
+        <span>📅 <strong>${dateRange}</strong></span>
+    `;
+}
+
+function renderCharts() {
+    renderBarChart('chartStatus', groupBy(filteredData, 'status', 'count'), 'count');
+    renderBarChart('chartVendor', groupBy(filteredData, 'vendor', 'value').slice(0, 10), 'value');
+}
+
+function groupBy(data, key, mode) {
+    const map = {};
+    data.forEach(r => {
+        const k = r[key] || '(sin dato)';
+        if (!map[k]) map[k] = { label: k, count: 0, value: 0 };
+        map[k].count++;
+        map[k].value += r.total_amount;
+    });
+    return Object.values(map).sort((a, b) => b[mode] - a[mode]);
+}
+
+function renderBarChart(containerId, items, mode) {
+    const container = document.getElementById(containerId);
+    if (!items.length) { container.innerHTML = '<p class="text-muted" style="font-size:12px">Sin datos</p>'; return; }
+    const max = Math.max(...items.map(i => i[mode]));
+    const statusColors = {
+        'purchase': 'var(--green)', 'done': 'var(--accent)',
+        'draft': 'var(--amber)', 'sent': 'var(--blue)', 'cancel': 'var(--red)'
+    };
+
+    container.innerHTML = items.map(item => {
+        const pct = max > 0 ? (item[mode] / max * 100) : 0;
+        const color = statusColors[item.label] || 'var(--accent)';
+        const display = mode === 'value' ? `Q${(item.value / 1000).toFixed(0)}K` : item.count.toLocaleString();
+        const label = containerId === 'chartStatus' ? formatStatus(item.label) : item.label;
+        return `<div class="bar-row">
+            <div class="bar-label" title="${label}">${label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"><span class="bar-val">${display}</span></div></div>
+        </div>`;
+    }).join('');
+}
+
+// ═══════ TABLE ═══════
+function renderTable() {
+    let data = [...filteredData];
+    if (sortCol) {
+        data.sort((a, b) => {
+            let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+            if (['total_amount', 'received_pct', 'invoiced_pct'].includes(sortCol)) { va = Number(va); vb = Number(vb); }
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const totalPages = Math.ceil(data.length / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageData = data.slice(start, start + PAGE_SIZE);
+
+    const tbody = document.getElementById('poTableBody');
+    tbody.innerHTML = pageData.map(r => `
+        <tr>
+            <td><strong class="mono" style="color:var(--text)">${esc(r.po_name)}</strong></td>
+            <td><span class="vendor-tag">${esc(r.vendor)}</span></td>
+            <td class="mono">${r.order_date || '—'}</td>
+            <td><span class="po-status ${statusClass(r.status)}">${formatStatus(r.status)}</span></td>
+            <td class="text-right mono" style="color:var(--text)">Q${r.total_amount.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+                    <div class="progress-bar"><div class="progress-fill" style="width:${r.received_pct}%;background:var(--green)"></div></div>
+                    <span class="mono" style="font-size:12px">${r.received_pct.toFixed(0)}%</span>
+                </div>
+            </td>
+            <td class="text-right">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+                    <div class="progress-bar"><div class="progress-fill" style="width:${r.invoiced_pct}%;background:var(--blue)"></div></div>
+                    <span class="mono" style="font-size:12px">${r.invoiced_pct.toFixed(0)}%</span>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    renderPagination(totalPages);
+}
+
+function sortTable(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+    renderTable();
+}
+
+function renderPagination(totalPages) {
+    const pg = document.getElementById('pagination');
+    if (totalPages <= 1) { pg.innerHTML = ''; return; }
+    let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})">← Ant</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 3 && i < totalPages - 2 && Math.abs(i - currentPage) > 1) {
+            if (i === 4 || i === totalPages - 3) html += '<span style="color:var(--text-muted);padding:0 4px">...</span>';
+            continue;
+        }
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">Sig →</button>`;
+    pg.innerHTML = html;
+}
+
+function goPage(n) { currentPage = n; renderTable(); }
+
+// ═══════ HELPERS ═══════
+function formatStatus(s) {
+    const map = { 'purchase': 'Confirmada', 'done': 'Completada', 'draft': 'Borrador', 'sent': 'Enviada', 'cancel': 'Cancelada' };
+    return map[s?.toLowerCase()] || s || '—';
+}
+
+function statusClass(s) {
+    const map = { 'purchase': 'purchase', 'done': 'done', 'draft': 'draft', 'sent': 'sent', 'cancel': 'cancel' };
+    return map[s?.toLowerCase()] || '';
+}
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function exportCSV() {
+    if (!filteredData.length) return;
+    const headers = ['PO #', 'Proveedor', 'Fecha', 'Estado', 'Monto Total', 'Recibido %', 'Facturado %'];
+    const rows = filteredData.map(r => [r.po_name, r.vendor, r.order_date, formatStatus(r.status), r.total_amount, r.received_pct, r.invoiced_pct]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `ordenes_compra_${new Date().toISOString().substring(0, 10)}.csv`;
+    a.click();
+}
+
+// ═══════ INIT ═══════
+loadData();
+</script>
+</body>
+</html>

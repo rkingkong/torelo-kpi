@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torelo — Inventario</title>
+    <link rel="stylesheet" href="theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Page-specific styles */
+        .stock-level {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+        }
+        .stock-level.critical { background: var(--red-dim); color: var(--red); }
+        .stock-level.low { background: var(--amber-dim); color: var(--amber); }
+        .stock-level.ok { background: var(--green-dim); color: var(--green); }
+        .stock-level.over { background: var(--blue-dim); color: var(--blue); }
+
+        .stock-indicator {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+
+        .alert-card {
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 18px;
+            display: flex; align-items: center; gap: 12px;
+            transition: border-color .2s;
+        }
+        .alert-card:hover { border-color: var(--border-hover); }
+        .alert-card .alert-icon { font-size: 24px; flex-shrink: 0; }
+        .alert-card .alert-text { flex: 1; }
+        .alert-card .alert-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+        .alert-card .alert-desc { font-size: 12px; color: var(--text-dim); }
+        .alert-card .alert-value { font-size: 20px; font-weight: 700; flex-shrink: 0; }
+
+        .alerts-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px; margin-bottom: 20px;
+        }
+
+        .export-btn {
+            padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+            cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .export-btn:hover { background: var(--surface-3); color: var(--text); }
+
+        .summary-strip {
+            display: flex; gap: 24px; padding: 14px 22px;
+            background: var(--surface-2); border-bottom: 1px solid var(--border);
+            font-size: 12px; color: var(--text-dim); flex-wrap: wrap;
+        }
+        .summary-strip strong { color: var(--text); margin-right: 4px; }
+    </style>
+</head>
+<body>
+
+<script src="nav.js" data-active="inventory"></script>
+
+<div class="main">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-toggle" onclick="document.getElementById('tkpiSidebar').classList.toggle('open')">☰</button>
+            <h1>🏗️ Dashboard de Inventario</h1>
+        </div>
+        <div class="topbar-right">
+            <button class="export-btn" onclick="exportCSV()">📥 Exportar CSV</button>
+            <span class="status-pill ok" id="statusPill" style="display:none">
+                <span class="sp-dot"></span>
+                <span id="statusLabel"></span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Loading -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="spinner"></div>
+        <p style="color:var(--text-dim);font-size:14px">Cargando inventario...</p>
+        <p style="color:var(--text-muted);font-size:12px">Procesando archivo del servidor</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorScreen" style="display:none" class="content">
+        <div class="error-banner">
+            ⚠️ No se pudo cargar el archivo de inventario.
+        </div>
+        <div class="empty-state">
+            <div class="es-icon">📦</div>
+            <p>Verifica que el script <code class="mono">01_inventory_report_generator.py</code> se haya ejecutado.</p>
+            <p style="margin-top:8px">El archivo esperado es: <code class="mono">latest/inventory_report.xlsx</code></p>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" style="display:none">
+        <div class="content">
+
+            <!-- KPIs -->
+            <div class="kpi-grid" id="kpiGrid"></div>
+
+            <!-- Stock Alerts -->
+            <div class="section-card" id="alertsSection" style="display:none">
+                <div class="section-header">
+                    <h2>🚨 Alertas de Stock</h2>
+                    <span class="status-pill warn" id="alertCount"><span class="sp-dot"></span> <span id="alertCountLabel">0</span></span>
+                </div>
+                <div class="section-body">
+                    <div class="alerts-grid" id="alertsGrid"></div>
+                </div>
+            </div>
+
+            <!-- Filters + Data -->
+            <div class="section-card">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">Categoría:</label>
+                        <select class="filter-select" id="filterCategory" onchange="applyFilters()">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Ubicación:</label>
+                        <select class="filter-select" id="filterLocation" onchange="applyFilters()">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Nivel:</label>
+                        <select class="filter-select" id="filterLevel" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="critical">🔴 Crítico</option>
+                            <option value="low">🟡 Bajo</option>
+                            <option value="ok">🟢 Normal</option>
+                            <option value="over">🔵 Exceso</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <input type="text" class="filter-input" id="searchInput" placeholder="🔍 Buscar producto, SKU, categoría..." oninput="applyFilters()" style="min-width:240px">
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Limpiar</button>
+                </div>
+
+                <div class="summary-strip" id="summaryStrip"></div>
+
+                <!-- Charts -->
+                <div class="section-body">
+                    <div class="chart-grid" style="margin-bottom:20px">
+                        <div class="chart-card">
+                            <h3>📊 Por Categoría (Valor)</h3>
+                            <div id="chartCategory"></div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>📦 Nivel de Stock</h3>
+                            <div id="chartLevel"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="data-table-wrap">
+                    <table class="data-table" id="invTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('product')">Producto</th>
+                                <th onclick="sortTable('sku')">SKU / Ref</th>
+                                <th onclick="sortTable('category')">Categoría</th>
+                                <th onclick="sortTable('location')">Ubicación</th>
+                                <th onclick="sortTable('qty_on_hand')" style="text-align:right">En Mano</th>
+                                <th onclick="sortTable('qty_reserved')" style="text-align:right">Reservado</th>
+                                <th onclick="sortTable('qty_available')" style="text-align:right">Disponible</th>
+                                <th onclick="sortTable('unit_cost')" style="text-align:right">Costo Unit.</th>
+                                <th onclick="sortTable('total_value')" style="text-align:right">Valor Total</th>
+                                <th>Nivel</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:32px 0 16px;color:var(--text-muted);font-size:12px">
+    <p>© 2024 Torelo — Sistema de Reportes KPI</p>
+</footer>
+
+<script>
+// ═══════ STATE ═══════
+let allData = [];
+let filteredData = [];
+let sortCol = 'total_value';
+let sortAsc = false;
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
+// ═══════ LOAD ═══════
+async function loadData() {
+    const paths = [
+        'latest/inventory_report.xlsx',
+        'latest/inventory.xlsx',
+        'latest/current_inventory.xlsx'
+    ];
+
+    for (const path of paths) {
+        try {
+            const resp = await fetch(path + '?' + Date.now());
+            if (!resp.ok) continue;
+
+            const buf = await resp.arrayBuffer();
+            const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const raw = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+            if (raw.length === 0) continue;
+
+            allData = raw.map(row => {
+                const r = {};
+                Object.keys(row).forEach(k => {
+                    r[k.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')] = row[k];
+                });
+
+                const qtyOnHand = parseFloat(r.qty_on_hand || r.quantity_on_hand || r.on_hand || r.qty || r.stock || 0);
+                const qtyReserved = parseFloat(r.qty_reserved || r.reserved || r.qty_outgoing || 0);
+                const qtyAvailable = parseFloat(r.qty_available || r.available || r.free_qty || (qtyOnHand - qtyReserved));
+                const reorderPoint = parseFloat(r.reorder_point || r.reorder_min || r.min_qty || r.orderpoint_min || 0);
+                const reorderMax = parseFloat(r.reorder_max || r.max_qty || r.orderpoint_max || 0);
+                const unitCost = parseFloat(r.unit_cost || r.cost || r.standard_price || r.price || 0);
+                const totalValue = parseFloat(r.total_value || r.value || (qtyOnHand * unitCost));
+
+                let level = 'ok';
+                if (reorderPoint > 0) {
+                    if (qtyAvailable <= 0) level = 'critical';
+                    else if (qtyAvailable <= reorderPoint) level = 'low';
+                    else if (reorderMax > 0 && qtyAvailable > reorderMax * 1.5) level = 'over';
+                } else if (qtyAvailable <= 0) {
+                    level = 'critical';
+                }
+
+                return {
+                    product: r.product || r.product_name || r.name || r.display_name || '',
+                    sku: r.sku || r.default_code || r.internal_reference || r.ref || r.barcode || '',
+                    category: r.category || r.product_category || r.categ || r.categ_id || '',
+                    location: r.location || r.location_name || r.warehouse || '',
+                    uom: r.uom || r.unit || r.uom_name || '',
+                    qty_on_hand: qtyOnHand,
+                    qty_reserved: qtyReserved,
+                    qty_available: qtyAvailable,
+                    reorder_point: reorderPoint,
+                    reorder_max: reorderMax,
+                    unit_cost: unitCost,
+                    total_value: totalValue,
+                    level: level,
+                    demand: parseFloat(r.demand || r.qty_demand || r.forecasted_demand || 0),
+                    _raw: row
+                };
+            });
+
+            filteredData = [...allData];
+            populateFilters();
+            render();
+
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            const pill = document.getElementById('statusPill');
+            pill.style.display = 'inline-flex';
+            document.getElementById('statusLabel').textContent = `${allData.length} productos`;
+            return;
+
+        } catch (e) {
+            console.warn('Failed to load ' + path, e);
+        }
+    }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('errorScreen').style.display = 'block';
+}
+
+// ═══════ FILTERS ═══════
+function populateFilters() {
+    const cats = [...new Set(allData.map(r => r.category))].filter(Boolean).sort();
+    const locs = [...new Set(allData.map(r => r.location))].filter(Boolean).sort();
+
+    const catSel = document.getElementById('filterCategory');
+    cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+
+    const locSel = document.getElementById('filterLocation');
+    locs.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; locSel.appendChild(o); });
+}
+
+function applyFilters() {
+    const category = document.getElementById('filterCategory').value;
+    const location = document.getElementById('filterLocation').value;
+    const level = document.getElementById('filterLevel').value;
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    filteredData = allData.filter(r => {
+        if (category && r.category !== category) return false;
+        if (location && r.location !== location) return false;
+        if (level && r.level !== level) return false;
+        if (search) {
+            const hay = [r.product, r.sku, r.category, r.location].join(' ').toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        return true;
+    });
+
+    currentPage = 1;
+    render();
+}
+
+function resetFilters() {
+    ['filterCategory', 'filterLocation', 'filterLevel', 'searchInput'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    applyFilters();
+}
+
+// ═══════ RENDER ═══════
+function render() {
+    renderKPIs();
+    renderAlerts();
+    renderSummary();
+    renderCharts();
+    renderTable();
+}
+
+function renderKPIs() {
+    const d = filteredData;
+    const totalValue = d.reduce((s, r) => s + r.total_value, 0);
+    const uniqueProducts = new Set(d.map(r => r.product)).size;
+    const critical = d.filter(r => r.level === 'critical').length;
+    const low = d.filter(r => r.level === 'low').length;
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--accent)"></div>
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-label">PRODUCTOS</div>
+            <div class="kpi-value">${uniqueProducts.toLocaleString()}</div>
+            <div class="kpi-sub">${new Set(d.map(r => r.category)).size} categorías</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--green)"></div>
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-label">VALOR TOTAL INVENTARIO</div>
+            <div class="kpi-value">Q${(totalValue / 1000).toFixed(0)}K</div>
+            <div class="kpi-sub">Q${totalValue.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--red)"></div>
+            <div class="kpi-icon">🚨</div>
+            <div class="kpi-label">SIN STOCK</div>
+            <div class="kpi-value text-red">${critical}</div>
+            <div class="kpi-sub">productos en cero</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-glow" style="background:var(--amber)"></div>
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-label">STOCK BAJO</div>
+            <div class="kpi-value text-amber">${low}</div>
+            <div class="kpi-sub">bajo punto de reorden</div>
+        </div>
+    `;
+}
+
+function renderAlerts() {
+    const critical = allData.filter(r => r.level === 'critical');
+    const low = allData.filter(r => r.level === 'low');
+
+    const alerts = [...critical, ...low].slice(0, 8);
+
+    if (alerts.length === 0) {
+        document.getElementById('alertsSection').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('alertsSection').style.display = 'block';
+    document.getElementById('alertCountLabel').textContent = `${critical.length + low.length} alertas`;
+
+    document.getElementById('alertsGrid').innerHTML = alerts.map(r => {
+        const isCritical = r.level === 'critical';
+        return `<div class="alert-card" style="border-left:3px solid ${isCritical ? 'var(--red)' : 'var(--amber)'}">
+            <div class="alert-icon">${isCritical ? '🔴' : '🟡'}</div>
+            <div class="alert-text">
+                <div class="alert-title">${esc(r.product)}</div>
+                <div class="alert-desc">${esc(r.category)} · ${r.sku || 'Sin SKU'}</div>
+            </div>
+            <div class="alert-value" style="color:${isCritical ? 'var(--red)' : 'var(--amber)'}">
+                ${r.qty_available.toFixed(1)}
+                <div style="font-size:10px;font-weight:400;color:var(--text-muted)">${r.uom || 'uds'}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderSummary() {
+    const d = filteredData;
+    const cats = new Set(d.map(r => r.category)).size;
+    const locs = new Set(d.map(r => r.location)).size;
+    document.getElementById('summaryStrip').innerHTML = `
+        <span>📦 <strong>${d.length}</strong> productos filtrados</span>
+        <span>🏷️ <strong>${cats}</strong> categorías</span>
+        <span>📍 <strong>${locs}</strong> ubicaciones</span>
+    `;
+}
+
+function renderCharts() {
+    // Category by value
+    const catMap = {};
+    filteredData.forEach(r => {
+        const k = r.category || '(sin categoría)';
+        if (!catMap[k]) catMap[k] = { label: k, value: 0, count: 0 };
+        catMap[k].value += r.total_value;
+        catMap[k].count++;
+    });
+    const catItems = Object.values(catMap).sort((a, b) => b.value - a.value).slice(0, 10);
+    renderBarChart('chartCategory', catItems, 'value');
+
+    // Level distribution
+    const levelMap = { critical: 0, low: 0, ok: 0, over: 0 };
+    filteredData.forEach(r => { levelMap[r.level] = (levelMap[r.level] || 0) + 1; });
+    const levelItems = [
+        { label: '🔴 Crítico', count: levelMap.critical, value: 0 },
+        { label: '🟡 Bajo', count: levelMap.low, value: 0 },
+        { label: '🟢 Normal', count: levelMap.ok, value: 0 },
+        { label: '🔵 Exceso', count: levelMap.over, value: 0 },
+    ].filter(i => i.count > 0);
+    const levelColors = { '🔴 Crítico': 'var(--red)', '🟡 Bajo': 'var(--amber)', '🟢 Normal': 'var(--green)', '🔵 Exceso': 'var(--blue)' };
+
+    const container = document.getElementById('chartLevel');
+    const maxCount = Math.max(...levelItems.map(i => i.count));
+    container.innerHTML = levelItems.map(item => {
+        const pct = maxCount > 0 ? (item.count / maxCount * 100) : 0;
+        return `<div class="bar-row">
+            <div class="bar-label">${item.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${levelColors[item.label] || 'var(--accent)'}"><span class="bar-val">${item.count}</span></div></div>
+        </div>`;
+    }).join('');
+}
+
+function renderBarChart(containerId, items, mode) {
+    const container = document.getElementById(containerId);
+    if (!items.length) { container.innerHTML = '<p class="text-muted" style="font-size:12px">Sin datos</p>'; return; }
+    const max = Math.max(...items.map(i => i[mode]));
+    container.innerHTML = items.map(item => {
+        const pct = max > 0 ? (item[mode] / max * 100) : 0;
+        const display = mode === 'value' ? `Q${(item.value / 1000).toFixed(0)}K` : item.count.toLocaleString();
+        return `<div class="bar-row">
+            <div class="bar-label" title="${item.label}">${item.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)"><span class="bar-val">${display}</span></div></div>
+        </div>`;
+    }).join('');
+}
+
+// ═══════ TABLE ═══════
+function renderTable() {
+    let data = [...filteredData];
+    if (sortCol) {
+        data.sort((a, b) => {
+            let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+            if (['qty_on_hand', 'qty_reserved', 'qty_available', 'unit_cost', 'total_value'].includes(sortCol)) { va = Number(va); vb = Number(vb); }
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const totalPages = Math.ceil(data.length / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageData = data.slice(start, start + PAGE_SIZE);
+
+    const levelLabels = { critical: '🔴 Crítico', low: '🟡 Bajo', ok: '🟢 Normal', over: '🔵 Exceso' };
+
+    document.getElementById('invTableBody').innerHTML = pageData.map(r => `
+        <tr>
+            <td><strong style="color:var(--text)">${esc(r.product)}</strong></td>
+            <td class="mono text-dim">${esc(r.sku) || '—'}</td>
+            <td class="text-dim">${esc(r.category) || '—'}</td>
+            <td class="text-dim">${esc(r.location) || '—'}</td>
+            <td class="text-right mono">${r.qty_on_hand.toLocaleString('es-GT', { maximumFractionDigits: 2 })}</td>
+            <td class="text-right mono">${r.qty_reserved.toLocaleString('es-GT', { maximumFractionDigits: 2 })}</td>
+            <td class="text-right mono" style="color:${r.level === 'critical' ? 'var(--red)' : r.level === 'low' ? 'var(--amber)' : 'var(--text)'}">${r.qty_available.toLocaleString('es-GT', { maximumFractionDigits: 2 })}</td>
+            <td class="text-right mono">Q${r.unit_cost.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right mono" style="color:var(--text)">Q${r.total_value.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td><span class="stock-level ${r.level}"><span class="stock-indicator" style="background:currentColor"></span>${levelLabels[r.level]}</span></td>
+        </tr>
+    `).join('');
+
+    renderPagination(totalPages);
+}
+
+function sortTable(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = col === 'product'; }
+    renderTable();
+}
+
+function renderPagination(totalPages) {
+    const pg = document.getElementById('pagination');
+    if (totalPages <= 1) { pg.innerHTML = ''; return; }
+    let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})">← Ant</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 3 && i < totalPages - 2 && Math.abs(i - currentPage) > 1) {
+            if (i === 4 || i === totalPages - 3) html += '<span style="color:var(--text-muted);padding:0 4px">...</span>';
+            continue;
+        }
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">Sig →</button>`;
+    pg.innerHTML = html;
+}
+
+function goPage(n) { currentPage = n; renderTable(); }
+
+// ═══════ HELPERS ═══════
+function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function exportCSV() {
+    if (!filteredData.length) return;
+    const headers = ['Producto', 'SKU', 'Categoría', 'Ubicación', 'En Mano', 'Reservado', 'Disponible', 'Costo Unit', 'Valor Total', 'Nivel'];
+    const levelLabels = { critical: 'Crítico', low: 'Bajo', ok: 'Normal', over: 'Exceso' };
+    const rows = filteredData.map(r => [r.product, r.sku, r.category, r.location, r.qty_on_hand, r.qty_reserved, r.qty_available, r.unit_cost, r.total_value, levelLabels[r.level]]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `inventario_${new Date().toISOString().substring(0, 10)}.csv`;
+    a.click();
+}
+
+// ═══════ INIT ═══════
+loadData();
+</script>
+</body>
+</html>

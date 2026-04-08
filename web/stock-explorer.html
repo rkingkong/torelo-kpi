@@ -4,91 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Torelo — Explorador de Movimientos de Stock</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        :root {
-            --bg:#0f1117;--surface:#181a20;--surface-2:#1f2128;--surface-3:#262830;
-            --border:#2a2d37;--border-hover:#3d4150;
-            --text:#e4e5e9;--text-dim:#8b8f9a;--text-muted:#5c5f6b;
-            --accent:#6c5ce7;--accent-glow:rgba(108,92,231,.15);--accent-soft:#7c6ff0;
-            --green:#00d68f;--green-dim:rgba(0,214,143,.12);
-            --amber:#f0b429;--amber-dim:rgba(240,180,41,.12);
-            --red:#ff6b6b;--red-dim:rgba(255,107,107,.12);
-            --blue:#48bfe3;--blue-dim:rgba(72,191,227,.12);
-            --radius:10px;--radius-lg:14px;
-            --sidebar-w:260px;--header-h:64px;
+        /* ═══ Page-specific styles only ═══ */
+
+        /* Filter bar (extended) */
+        .filter-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+        .filter-group{display:flex;flex-direction:column;gap:4px;min-width:140px}
+        .filter-group label{font-size:11.5px;font-weight:600;color:var(--text-dim)}
+        .filter-group select, .filter-group input[type="date"]{
+            padding:8px 10px;border-radius:6px;border:1px solid var(--border);
+            background:var(--surface);color:var(--text);font-size:12.5px;font-family:inherit;outline:none
         }
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;overflow-x:hidden}
+        .filter-group select:focus, .filter-group input:focus{border-color:var(--accent)}
 
-        /* Sidebar — matches dashboard */
-        .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:900;transition:transform .3s cubic-bezier(.4,0,.2,1)}
-        .sidebar.collapsed{transform:translateX(calc(var(--sidebar-w)*-1))}
-        .sidebar-brand{height:var(--header-h);display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0}
-        .sidebar-brand .logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#a78bfa);border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff}
-        .sidebar-brand h2{font-size:16px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(135deg,#e4e5e9,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-        .sidebar-brand small{display:block;font-size:11px;color:var(--text-muted);font-weight:400;-webkit-text-fill-color:var(--text-muted)}
-        .sidebar-nav{flex:1;overflow-y:auto;padding:16px 12px}
-        .nav-section{margin-bottom:24px}
-        .nav-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);padding:0 8px;margin-bottom:8px}
-        .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text-dim);text-decoration:none;font-size:13.5px;font-weight:500;transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
-        .nav-item:hover{background:var(--surface-2);color:var(--text)}
-        .nav-item.active{background:var(--accent-glow);color:var(--accent-soft)}
-        .nav-item .nav-icon{font-size:17px;width:24px;text-align:center;flex-shrink:0}
-        .nav-item .badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--accent-glow);color:var(--accent-soft)}
-        .nav-item .badge.green{background:var(--green-dim);color:var(--green)}
+        .search-bar{flex:1;min-width:200px}
+        .search-bar input{
+            width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--border);
+            background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;outline:none
+        }
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar input::placeholder{color:var(--text-muted)}
 
-        /* Main */
-        .main{margin-left:var(--sidebar-w);min-height:100vh;transition:margin-left .3s}
-        .sidebar.collapsed~.main{margin-left:0}
-        .topbar{position:sticky;top:0;z-index:800;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(15,17,23,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-        .topbar-left{display:flex;align-items:center;gap:16px}
-        .menu-toggle{display:none;background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer}
-        .topbar h1{font-size:17px;font-weight:600;letter-spacing:-.2px}
+        .btn-sm{padding:7px 14px;font-size:12px;border-radius:6px}
+        .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;font-weight:600;font-family:inherit;transition:all .15s}
+        .btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+        .export-btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);cursor:pointer;font-family:inherit;transition:all .15s}
+        .export-btn:hover{background:var(--surface-3);color:var(--text)}
 
-        .content{padding:28px;max-width:1480px}
+        /* Pills for movement types */
+        .pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+        .pill-in{background:var(--green-dim);color:var(--green)}
+        .pill-out{background:var(--red-dim);color:var(--red)}
+        .pill-prod{background:var(--amber-dim);color:var(--amber)}
+        .pill-adj{background:var(--blue-dim);color:var(--blue)}
+        .pill-other{background:var(--surface-3);color:var(--text-dim)}
 
-        /* KPI cards */
-        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
-        .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
-        .kpi-card:hover{border-color:var(--border-hover)}
-        .kpi-card .kpi-glow{position:absolute;top:-30px;right:-30px;width:80px;height:80px;border-radius:50%;opacity:.4;filter:blur(30px);pointer-events:none}
-        .kpi-card .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
-        .kpi-card .kpi-value{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;letter-spacing:-1px}
-        .kpi-card .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
-
-        /* Section cards */
-        .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:24px;overflow:hidden}
-        .section-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
-        .section-header h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
-        .section-body{padding:20px}
-
-        /* Filters */
-        .filter-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
-        .filter-group{display:flex;flex-direction:column;gap:4px;min-width:180px;flex:1}
-        .filter-group label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
-        .filter-group select,.filter-group input{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
-        .filter-group select:focus,.filter-group input:focus{border-color:var(--accent)}
-        .filter-actions{display:flex;align-items:flex-end;gap:8px}
-        .btn{padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;transition:all .15s;font-family:inherit}
-        .btn-primary{background:var(--accent);color:#fff}
-        .btn-primary:hover{background:var(--accent-soft)}
-        .btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
-        .btn-ghost:hover{background:var(--surface-2)}
-        .btn-sm{padding:6px 12px;font-size:11.5px}
-
-        /* Chart area */
+        /* Chart grid */
         .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
         .chart-box{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-height:200px}
         .chart-box h3{font-size:12.5px;font-weight:600;color:var(--text-dim);margin-bottom:12px}
-        .bar-chart{display:flex;flex-direction:column;gap:6px}
-        .bar-row{display:flex;align-items:center;gap:10px}
-        .bar-label{font-size:11.5px;color:var(--text-dim);width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
-        .bar-track{flex:1;height:22px;background:var(--surface-3);border-radius:4px;overflow:hidden;position:relative}
-        .bar-fill{height:100%;border-radius:4px;transition:width .4s ease;display:flex;align-items:center;padding-left:8px}
-        .bar-val{font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;font-family:'JetBrains Mono',monospace}
 
         /* Table */
         .table-wrap{overflow-x:auto;max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
@@ -104,42 +60,13 @@
         .val-negative{color:var(--red)}
 
         /* Pagination */
-        .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 0;font-size:12.5px;color:var(--text-dim)}
         .page-btns{display:flex;gap:4px}
         .page-btn{padding:6px 12px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
-        .page-btn:hover{border-color:var(--border-hover);color:var(--text)}
-        .page-btn.active{background:var(--accent-glow);color:var(--accent-soft);border-color:var(--accent)}
-        .page-btn:disabled{opacity:.3;cursor:not-allowed}
+        .page-btn:hover:not(:disabled){background:var(--surface-3);color:var(--text)}
+        .page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+        .page-btn:disabled{opacity:.4;cursor:not-allowed}
 
-        /* Loading */
-        .loading-screen{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px}
-        .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-
-        /* Status pills */
-        .pill{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10.5px;font-weight:600}
-        .pill-in{background:var(--green-dim);color:var(--green)}
-        .pill-out{background:var(--red-dim);color:var(--red)}
-        .pill-prod{background:var(--amber-dim);color:var(--amber)}
-        .pill-adj{background:var(--blue-dim);color:var(--blue)}
-        .pill-other{background:var(--surface-3);color:var(--text-dim)}
-
-        /* Search */
-        .search-bar{position:relative;flex:2;min-width:240px}
-        .search-bar input{width:100%;padding:8px 12px 8px 34px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;font-family:inherit;outline:none}
-        .search-bar input:focus{border-color:var(--accent)}
-        .search-bar::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px}
-
-        /* Export button */
-        .export-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,214,143,.2);cursor:pointer;transition:all .15s}
-        .export-btn:hover{background:rgba(0,214,143,.2)}
-
-        /* Responsive */
         @media(max-width:840px){
-            .sidebar{transform:translateX(calc(var(--sidebar-w)*-1))}.sidebar.open{transform:translateX(0)}
-            .main{margin-left:0!important}.menu-toggle{display:block}
-            .content{padding:20px 14px}
-            .kpi-grid{grid-template-columns:repeat(2,1fr)}
             .chart-grid{grid-template-columns:1fr}
             .filter-bar{flex-direction:column}
         }
@@ -148,33 +75,14 @@
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="logo">T</div>
-        <div><h2>Torelo KPI<small>Centro de Inteligencia</small></h2></div>
-    </div>
-    <nav class="sidebar-nav">
-        <div class="nav-section">
-            <div class="nav-label">Principal</div>
-            <a href="/" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
-        </div>
-        <div class="nav-section">
-            <div class="nav-label">Herramientas</div>
-            <a href="gantt-viewer.html" class="nav-item"><span class="nav-icon">📋</span> Plan de Proyectos</a>
-            <a href="cashflow-viewer.html" class="nav-item"><span class="nav-icon">💰</span> Flujo de Pagos</a>
-            <a href="attendance-viewer.html" class="nav-item"><span class="nav-icon">👷</span> Asistencia</a>
-            <a href="stock-explorer.html" class="nav-item active"><span class="nav-icon">📦</span> Movimientos de Stock<span class="badge green">Nuevo</span></a>
-            <a href="search.html" class="nav-item"><span class="nav-icon">🔍</span> Buscar Documentos</a>
-        </div>
-    </nav>
-</aside>
+<!-- Sidebar injected by nav.js -->
+<script src="nav.js" data-active="stock"></script>
 
 <!-- MAIN -->
 <div class="main">
     <header class="topbar">
         <div class="topbar-left">
-            <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+            <button class="menu-toggle" onclick="document.getElementById('tkpiSidebar').classList.toggle('open')">☰</button>
             <h1>📦 Explorador de Movimientos de Stock</h1>
         </div>
     </header>
@@ -220,7 +128,7 @@
                             <select id="filterPurpose" onchange="applyFilters()"><option value="">Todos</option></select>
                         </div>
                     </div>
-                    <div class="filter-bar">
+                    <div class="filter-bar" style="margin-top:10px">
                         <div class="filter-group" style="max-width:180px">
                             <label>Fecha Desde</label>
                             <input type="date" id="filterDateFrom" onchange="applyFilters()">
@@ -314,7 +222,6 @@ const columns = [
 // ─── Load CSV ───
 async function loadData() {
     try {
-        // Try CSV first, then XLSX filename
         const files = ['latest/master_stock_movements.csv'];
         let loaded = false;
 
@@ -373,7 +280,6 @@ function populateFilters() {
     fill('filterPurpose', 'usage_purpose');
     fill('filterProject', 'project_name');
 
-    // Vendor: combine vendor_name and partner_name
     const vendors = [...new Set(allData.map(r => r.vendor_name || r.partner_name).filter(Boolean))].sort();
     const vSel = document.getElementById('filterVendor');
     vSel.innerHTML = '<option value="">Todos</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join('');
@@ -508,44 +414,53 @@ function renderTable() {
         });
     }
 
-    // Header
-    document.getElementById('tableHead').innerHTML = columns.map(c =>
-        `<th class="${sortCol===c.key?'sorted':''}" style="${c.align?'text-align:'+c.align:''}" onclick="sortTable('${c.key}')">
-            ${c.label}<span class="sort-arrow">${sortCol===c.key?(sortAsc?'▲':'▼'):'⇅'}</span>
-        </th>`
-    ).join('');
-
-    // Paginate
-    const totalPages = Math.ceil(data.length / pageSize);
+    // Pagination
+    const totalPages = Math.ceil(data.length / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
     const start = (currentPage - 1) * pageSize;
     const pageData = data.slice(start, start + pageSize);
 
+    // Header
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = columns.map(c => {
+        const isSorted = sortCol === c.key;
+        const arrow = isSorted ? (sortAsc ? '▲' : '▼') : '⇅';
+        return `<th class="${isSorted?'sorted':''}" style="${c.align?'text-align:'+c.align:''}" onclick="sortTable('${c.key}')">${c.label} <span class="sort-arrow">${arrow}</span></th>`;
+    }).join('');
+
     // Body
-    document.getElementById('tableBody').innerHTML = pageData.map(row =>
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = pageData.map(row =>
         '<tr>' + columns.map(c => {
-            const raw = row[c.key] ?? '';
-            const display = c.fmt ? c.fmt(raw) : escapeHtml(String(raw));
-            return `<td style="${c.align?'text-align:'+c.align:''}" title="${escapeHtml(String(raw))}">${display}</td>`;
+            const val = row[c.key];
+            const display = c.fmt ? c.fmt(val) : escapeHtml(val || '');
+            return `<td style="${c.align?'text-align:'+c.align:''}" title="${escapeHtml(String(val||''))}">${display}</td>`;
         }).join('') + '</tr>'
     ).join('');
 
+    // Info
+    document.getElementById('tableInfo').textContent = `${start+1}–${Math.min(start+pageSize, data.length)} de ${data.length}`;
+
     // Pagination
-    document.getElementById('tableInfo').textContent = `Página ${currentPage} de ${totalPages}`;
     const pb = document.getElementById('paginationBar');
     if (totalPages <= 1) { pb.innerHTML = ''; return; }
 
-    let btns = `<span style="color:var(--text-muted)">${start+1}–${Math.min(start+pageSize,data.length)} de ${data.length}</span><div class="page-btns">`;
+    let btns = `<div style="display:flex;align-items:center;justify-content:space-between;width:100%">`;
+    btns += `<span style="font-size:12px;color:var(--text-muted)">Página ${currentPage} de ${totalPages}</span>`;
+    btns += `<div class="page-btns">`;
     btns += `<button class="page-btn" onclick="goPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
     btns += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
 
-    const range = 3;
-    let s = Math.max(1, currentPage - range), e = Math.min(totalPages, currentPage + range);
+    const range = 2;
+    let s = Math.max(1, currentPage - range);
+    let e = Math.min(totalPages, currentPage + range);
     if (s > 1) btns += `<button class="page-btn" onclick="goPage(1)">1</button>` + (s > 2 ? '<span style="color:var(--text-muted);padding:0 4px">…</span>' : '');
     for (let i = s; i <= e; i++) btns += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
     if (e < totalPages) btns += (e < totalPages-1 ? '<span style="color:var(--text-muted);padding:0 4px">…</span>' : '') + `<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
 
     btns += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
     btns += `<button class="page-btn" onclick="goPage(${totalPages})" ${currentPage===totalPages?'disabled':''}>»</button></div>`;
+    btns += `</div>`;
     pb.innerHTML = btns;
 }
 
